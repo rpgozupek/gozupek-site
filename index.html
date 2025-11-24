@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gözüpek Teknoloji</title>
+  <meta name="description" content="Endüstriyel otomasyon ve servo sac sürücü sistemleri." />
+  <style>
+    :root{
+      --bg:#0b0d10;
+      --card:#11151a;
+      --text:#e8eaed;
+      --muted:#a0a7b4;
+      --accent:#ff6a00;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #1a2430 0%, transparent 60%),
+                  radial-gradient(900px 500px at -10% 10%, #231a30 0%, transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .wrap{
+      width:100%;
+      max-width:980px;
+      display:grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap:20px;
+    }
+    @media (max-width: 820px){
+      .wrap{grid-template-columns: 1fr;}
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00)) , var(--card);
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:18px;
+      padding:28px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.45);
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px; margin-bottom:10px;
+      font-weight:700; letter-spacing:.6px;
+    }
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px var(--accent);}
+    h1{font-size:44px; line-height:1.08; margin:6px 0 10px;}
+    p{color:var(--muted); font-size:18px; line-height:1.6;}
+    .pillrow{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+    .pill{
+      font-size:13px; color:#dfe3ea; background:rgba(255,255,255,0.05);
+      padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.06);
+    }
+    .cta{
+      display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;
+    }
+    a.btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:10px 14px; border-radius:10px; text-decoration:none; font-weight:600;
+      border:1px solid rgba(255,255,255,0.10);
+      background:rgba(255,255,255,0.04); color:var(--text);
+    }
+    a.btn.primary{background:var(--accent); border-color:transparent; color:#111;}
+    .list{margin-top:10px; display:grid; gap:10px;}
+    .item{
+      padding:12px; border-radius:12px; background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.06);
+    }
+    .item b{display:block; margin-bottom:4px;}
+    footer{
+      margin-top:14px; color:var(--muted); font-size:13px; text-align:center;
+    }
+    input{
+      width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.12);
+      background:#0e1216; color:var(--text); outline:none;
+    }
+    .small{font-size:12px;color:var(--muted);margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card">
+      <div class="brand"><span class="dot"></span> GÖZÜPEK TEKNOLOJİ</div>
+      <h1>Servo Sac Sürücü<br/>ve Pres Otomasyon Sistemleri</h1>
+      <p>
+        Eksantrik pres hatları için yüksek hızda, kararlı ve kullanıcı dostu
+        sac sürme çözümleri geliştiriyoruz. Sahada kanıtlanmış donanım +
+        yazılım ekosistemiyle üretim verisini görünür hale getiriyoruz.
+      </p>
+
+      <div class="pillrow">
+        <div class="pill">ESP32 / Nextion HMI</div>
+        <div class="pill">Endüstriyel IoT</div>
+        <div class="pill">Gerçek zamanlı baskı takibi</div>
+        <div class="pill">Arıza öğrenme modu</div>
+        <div class="pill">Uzaktan izleme (yakında)</div>
+      </div>
+
+      <div class="cta">
+        <a class="btn primary" href="mailto:rpgzupek@gmail.com">İletişim</a>
+        <a class="btn" href="#beta">Beta listeye katıl</a>
+      </div>
+
+      <footer>
+        © Gözüpek Teknoloji — İstanbul
+      </footer>
+    </section>
+
+    <aside class="card">
+      <b style="font-size:18px;">Neler yapıyoruz?</b>
+      <div class="list">
+        <div class="item">
+          <b>Servo Sac Sürücü</b>
+          Preslere entegre çalışan, boy/hız reçeteleriyle kararlı sac ilerletme.
+        </div>
+        <div class="item">
+          <b>HMI + Handle PCB</b>
+          Operatör arayüzü, SD loglama, reçete yönetimi.
+        </div>
+        <div class="item">
+          <b>Üretim Telemetrisi</b>
+          Baskı adedi, duruş, hata ve çevrim verilerini kaydetme.
+        </div>
+        <div class="item">
+          <b>IoT Platformu (taslak)</b>
+          Kullanıcı hesabı → cihaz eşleştirme → telefon üzerinden takip.
+        </div>
+      </div>
+
+      <div id="beta" style="margin-top:14px;">
+        <b style="font-size:16px;">Beta listesi</b>
+        <p class="small">Ürün ilk çıktığında haber al.</p>
+        <input type="email" placeholder="email@example.com" />
+        <p class="small">(Şimdilik dummy. Sonra backend’e bağlarız.)</p>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>
