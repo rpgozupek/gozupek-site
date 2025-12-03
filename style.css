@@ -93,7 +93,7 @@ body {
 
 .logo-img {
   display: block;
-  height: clamp(22px, 2.2vw, 26px);
+  height: clamp(220px, 2.2vw, 260px);
   width: auto;
 }
 
