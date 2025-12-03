@@ -98,7 +98,7 @@ body {
 }
 
 .logo-icon {
-  height: clamp(100px, 3vw, 120px);
+  height: clamp(80px, 3vw, 100px);
   width: clamp(230px, 3vw, 236px);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
