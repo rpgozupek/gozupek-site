@@ -99,7 +99,7 @@ body {
 
 .logo-icon {
   height: clamp(100px, 3vw, 120px);
-  width: clamp(130px, 3vw, 136px);
+  width: clamp(230px, 3vw, 236px);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   padding: clamp(5px, 0.8vw, 7px);
