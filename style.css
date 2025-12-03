@@ -98,8 +98,8 @@ body {
 }
 
 .logo-icon {
-  height: clamp(40px, 3vw, 60px);
-  width: clamp(230px, 3vw, 236px);
+  height: clamp(60px, 3vw, 80px);
+  width: clamp(23px, 3vw, 36px);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   padding: clamp(5px, 0.8vw, 7px);
