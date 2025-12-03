@@ -1,342 +1,310 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Gözüpek Teknoloji</title>
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="assets/logo-icon.png" />
-
-  <style>
-    :root{
-      --bg: #0b0b0b;
-      --bg-soft:#18191b;
-      --text:#eaeaea;
-      --muted:#a8a8a8;
-      --line: rgba(255,255,255,0.08);
-      --accent:#ffffff;
-      --radius: 16px;
-    }
-
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height:1.6;
-    }
-
-    .container{
-      width:min(1100px, 92%);
-      margin:0 auto;
-    }
-
-    /* HEADER */
-    .site-header{
-      position:sticky;
-      top:0;
-      z-index:999;
-      background: rgba(11,11,11,0.9);
-      border-bottom:1px solid var(--line);
-      backdrop-filter: blur(6px);
-    }
-    .header-inner{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 0;
-      gap:16px;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      text-decoration:none;
-      color:var(--text);
-      white-space:nowrap;
-    }
-    .brand-icon{
-      height:40px; width:auto;
-    }
-    .brand-text{
-      height:26px; width:auto;
-      transform: translateY(1px);
-    }
-    .nav{
-      display:flex;
-      gap:18px;
-      flex-wrap:wrap;
-    }
-    .nav a{
-      color:var(--text);
-      text-decoration:none;
-      font-size:15px;
-      opacity:.85;
-      transition:.2s ease;
-      padding:6px 8px;
-      border-radius:8px;
-    }
-    .nav a:hover{
-      opacity:1;
-      background: var(--bg-soft);
-    }
-
-    /* HERO */
-    .hero{
-      padding:72px 0 36px;
-      background:
-        radial-gradient(1000px 500px at 10% -20%, #1b1c1f 0%, transparent 60%),
-        radial-gradient(800px 400px at 90% 0%, #141518 0%, transparent 55%);
-      border-bottom:1px solid var(--line);
-    }
-    .hero-grid{
-      display:grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap:28px;
-      align-items:center;
-    }
-    .hero h1{
-      font-size: clamp(28px, 4vw, 44px);
-      line-height:1.2;
-      margin:0 0 12px;
-      letter-spacing:.2px;
-    }
-    .hero p{
-      margin:0 0 20px;
-      color:var(--muted);
-      font-size: clamp(15px, 2vw, 18px);
-    }
-    .hero-cta{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .btn{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:10px 14px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      text-decoration:none;
-      color:var(--text);
-      background: #15161a;
-      transition:.2s ease;
-      font-weight:600;
-      font-size:15px;
-    }
-    .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.18); }
-    .btn.primary{
-      background: #ffffff;
-      color:#000;
-      border-color:#fff;
-    }
-
-    .hero-card{
-      background: var(--bg-soft);
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      padding:18px;
-      min-height:220px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:var(--muted);
-      text-align:center;
-    }
-
-    /* SECTIONS */
-    section{
-      padding:44px 0;
-    }
-    .section-title{
-      font-size:22px;
-      margin:0 0 14px;
-    }
-    .section-sub{
-      color:var(--muted);
-      margin:0 0 20px;
-      font-size:15px;
-    }
-
-    /* CARDS */
-    .cards{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap:16px;
-    }
-    .card{
-      background: var(--bg-soft);
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      padding:18px;
-      transition:.2s ease;
-    }
-    .card:hover{
-      border-color: rgba(255,255,255,0.16);
-      transform: translateY(-2px);
-    }
-    .card h3{
-      margin:0 0 8px;
-      font-size:18px;
-    }
-    .card p{
-      margin:0;
-      color:var(--muted);
-      font-size:14px;
-    }
-
-    /* ABOUT + CONTACT */
-    .two-col{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:18px;
-    }
-    .panel{
-      background: var(--bg-soft);
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      padding:18px;
-    }
-    .panel h3{ margin:0 0 8px; }
-    .panel p{ margin:0; color:var(--muted); }
-
-    /* FOOTER */
-    footer{
-      border-top:1px solid var(--line);
-      padding:18px 0;
-      color:var(--muted);
-      font-size:14px;
-    }
-
-    /* RESPONSIVE */
-    @media (max-width: 900px){
-      .hero-grid{ grid-template-columns: 1fr; }
-      .cards{ grid-template-columns: 1fr 1fr; }
-      .two-col{ grid-template-columns: 1fr; }
-    }
-    @media (max-width: 520px){
-      .cards{ grid-template-columns: 1fr; }
-      .brand-text{ height:22px; }
-      .brand-icon{ height:34px; }
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gözüpek IronDrive – Servo Sac Sürücü</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-
+  <!-- Header / Nav -->
   <header class="site-header">
-    <div class="container header-inner">
-      <a href="/" class="brand">
-        <img src="assets/logo-icon.png" alt="Gözüpek logo icon" class="brand-icon" />
-        <img src="assets/logo-text.png" alt="Gözüpek Teknoloji" class="brand-text" />
+    <div class="container nav-container">
+      <a href="#hero" class="logo">
+        <span class="logo-mark">G</span>
+        <span class="logo-text">Gözüpek Teknoloji</span>
       </a>
 
-      <nav class="nav">
-        <a href="#urunler">Ürün</a>
-        <a href="#hakkimizda">Hakkımızda</a>
-        <a href="#iletisim">İletişim</a>
+      <button class="nav-toggle" id="navToggle" aria-label="Menüyü Aç/Kapat">
+        ☰
+      </button>
+
+      <nav class="nav" id="mainNav">
+        <a href="#products">Ürünler</a>
+        <a href="#advantages">Avantajlar</a>
+        <a href="#applications">Uygulamalar</a>
+        <a href="#support">Destek</a>
+        <a href="#contact">İletişim</a>
       </nav>
     </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <div class="container hero-grid">
-        <div>
-          <h1>Pres Otomasyonu ve Servo Sac Sürücü Çözümleri</h1>
-          <p>
-            Gözüpek Teknoloji; pres üretim hatları için akıllı sac sürme, servo kontrollü besleme ve
-            arıza tespit sistemleri geliştirir. Daha hızlı, daha güvenli, daha az fire.
-          </p>
-          <div class="hero-cta">
-            <a class="btn primary" href="#urunler">Ürünleri gör</a>
-            <a class="btn" href="#iletisim">Teklif iste</a>
+  <!-- Hero -->
+  <section id="hero" class="hero">
+    <div class="container hero-inner">
+      <div class="hero-text">
+        <h1>Pres Hatları İçin Akıllı Servo Sac Sürücü</h1>
+        <p>
+          Gözüpek IronDrive, eksantrik preslerin sac beslemesini otomatikleştirir,
+          hassas adım kontrolü, daha az fire ve gerçek zamanlı izleme sunar.
+        </p>
+        <div class="hero-actions">
+          <a href="#products" class="btn primary">Ürünleri İncele</a>
+          <a href="#support" class="btn ghost">Teknik Dokümanlar</a>
+        </div>
+
+        <div class="hero-meta">
+          <span>✔ 0.1&nbsp;mm hassasiyet</span>
+          <span>✔ ESP32 tabanlı kontrol</span>
+          <span>✔ Atölyede test edilmiş mekanik</span>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="device-card">
+          <div class="device-header">
+            <span class="pill pill-green">Online</span>
+            <span class="pill pill-dark">Demo</span>
+          </div>
+          <div class="device-body">
+            <h2>IronDrive Sürücü</h2>
+            <p>Adım: <strong>65.00 mm</strong></p>
+            <p>Hız: <strong>120 d/dk</strong></p>
+            <p>Hat durumu: <span class="status ok">Çalışıyor</span></p>
+            <div class="device-footer">
+              <span class="tag">Modbus</span>
+              <span class="tag">Ethernet</span>
+              <span class="tag">Nextion HMI</span>
+            </div>
           </div>
         </div>
-
-        <div class="hero-card">
-          Buraya ürün / sistem görseli veya kısa video gelecek.
-        </div>
+        <p class="hero-note">
+          Görsel temsili; gerçek ürünle beraber kendi fotoğraflarını buraya koyarsın.
+        </p>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section id="urunler">
-      <div class="container">
-        <h2 class="section-title">Ürünler</h2>
-        <p class="section-sub">Atölye sahasından doğan, sahada test edilmiş çözümler.</p>
-
-        <div class="cards">
-          <article class="card">
-            <h3>Servo Sac Sürücü</h3>
-            <p>Pres hattında hassas sac ilerletme. Boy/hız kontrollü besleme ve stabil üretim.</p>
-          </article>
-
-          <article class="card">
-            <h3>Arıza Tespit Modülü</h3>
-            <p>“Öğren” modu ile baskı döngüsünü profiller, sapmaları anında durdurur ve bildirir.</p>
-          </article>
-
-          <article class="card">
-            <h3>HMI / Handle Kontrol</h3>
-            <p>Nextion + ESP32 tabanlı kullanıcı arayüzü; reçete listeleri, SD kayıt, uzaktan takip.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section id="hakkimizda">
-      <div class="container two-col">
-        <div class="panel">
-          <h2 class="section-title">Hakkımızda</h2>
-          <p>
-            Gözüpek Teknoloji, İstanbul’da pres atölyesi tecrübesi üzerine kurulmuş
-            Ar-Ge odaklı bir girişimdir. Üretimde verimlilik ve güvenilirlik için
-            elektronik ve mekanik tasarımı birlikte ele alır.
-          </p>
-        </div>
-
-        <div class="panel">
-          <h3>Ne yapıyoruz?</h3>
-          <p>
-            Pres besleme otomasyonu, servo kontrol sistemleri, sensör tabanlı kalite/arıza izleme
-            ve kullanıcı dostu HMI çözümleri geliştiriyoruz.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <section id="iletisim">
-      <div class="container two-col">
-        <div class="panel">
-          <h2 class="section-title">İletişim</h2>
-          <p>Teklif, demo veya iş birliği için:</p>
-          <p style="margin-top:10px;">
-            <strong>E-posta:</strong> info@gozupekteknoloji.com<br/>
-            <strong>Konum:</strong> İstanbul / Eyüpsultan
-          </p>
-        </div>
-
-        <div class="panel">
-          <h3>Hızlı not</h3>
-          <p>
-            CLOUDFLARE TRANSFER TEST
-          </p>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer>
+  <!-- Product Sections (Sitodrive'ın product grid mantığı) -->
+  <section id="products" class="section">
     <div class="container">
-      © <span id="year"></span> Gözüpek Teknoloji — Tüm hakları saklıdır.
+      <header class="section-header">
+        <h2>IronDrive Ürün Ailesi</h2>
+        <p>
+          Farklı pres tonajları ve sac genişlikleri için optimize edilmiş üç ana model.
+          Tüm sistemlerde aynı kontrol mimarisi kullanılır.
+        </p>
+      </header>
+
+      <div class="product-grid">
+        <!-- Mini -->
+        <article class="product-card">
+          <div class="product-badge">Yeni</div>
+          <h3>IronDrive Mini</h3>
+          <p class="product-sub">
+            20–40 ton arası mini eksantrik presler için kompakt servo sac sürücü.
+          </p>
+          <ul class="product-specs">
+            <li>Adım aralığı: 5–120&nbsp;mm</li>
+            <li>Maks. hız: 150 d/dk</li>
+            <li>Besleme genişliği: 80&nbsp;mm'e kadar</li>
+            <li>Besleme gücü: 0.75&nbsp;kW servo</li>
+          </ul>
+          <div class="product-footer">
+            <span class="price">Ön sipariş</span>
+            <a href="#contact" class="btn small">Teklif Al</a>
+          </div>
+        </article>
+
+        <!-- Standard -->
+        <article class="product-card">
+          <div class="product-badge badge-blue">En Çok Tercih Edilen</div>
+          <h3>IronDrive 80</h3>
+          <p class="product-sub">
+            Atölyelerde en yaygın 40–80 ton presler için ana model.
+          </p>
+          <ul class="product-specs">
+            <li>Adım aralığı: 5–250&nbsp;mm</li>
+            <li>Maks. hız: 120 d/dk (öğrenilmiş döngü kontrollü)</li>
+            <li>Besleme genişliği: 150&nbsp;mm'e kadar</li>
+            <li>Besleme gücü: 1.5&nbsp;kW servo</li>
+          </ul>
+          <div class="product-footer">
+            <span class="price">Fiyat: Sorunuz</span>
+            <a href="#contact" class="btn primary small">Satış & Bayilik</a>
+          </div>
+        </article>
+
+        <!-- Heavy -->
+        <article class="product-card">
+          <div class="product-badge badge-dark">Yakında</div>
+          <h3>IronDrive Heavy</h3>
+          <p class="product-sub">
+            Yüksek tonajlı, geniş sac beslemeli özel projeler için platform.
+          </p>
+          <ul class="product-specs">
+            <li>Adım aralığı: proje bazlı</li>
+            <li>Çift servo / senkron besleme opsiyonu</li>
+            <li>Harici encoder ile pozisyon doğrulama</li>
+            <li>Endüstriyel fieldbus entegrasyonu</li>
+          </ul>
+          <div class="product-footer">
+            <span class="price">Proje Bazlı</span>
+            <a href="#contact" class="btn small">Mühendisle Görüş</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="section-cta">
+        <p>Tek pres, çok pres hattı veya yeni bir ürün hattı… Hepsi için aynı IronDrive mimarisi.</p>
+        <a href="#contact" class="btn ghost">Uygun modeli seçelim</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Advantages -->
+  <section id="advantages" class="section section-alt">
+    <div class="container">
+      <header class="section-header">
+        <h2>Neden Gözüpek IronDrive?</h2>
+        <p>Sitodrive’daki “Technical Advantage” mantığının, pres dünyasına uyarlanmış versiyonu.</p>
+      </header>
+
+      <div class="adv-grid">
+        <article class="adv-item">
+          <h3>Öğrenen Döngü</h3>
+          <p>
+            Presin bir dakikalık baskı döngüsünü otomatik analiz eder.  
+            Normal davranış eğrisini kaydeder, sapma olduğunda hatayı algılar ve presi durdurur.
+          </p>
+        </article>
+
+        <article class="adv-item">
+          <h3>Gerçek Zamanlı İzleme</h3>
+          <p>
+            ESP32 tabanlı kontrol kartı ile her baskı adımını sayar, hız ve adım
+            verilerini loglar. İstersen buluta aktarım için API bırakıyoruz.
+          </p>
+        </article>
+
+        <article class="adv-item">
+          <h3>Tek Kablo Mantığı</h3>
+          <p>
+            Motor sürücü, sensörler ve pres tetik sinyalleri için sadeleştirilmiş I/O.
+            Montajcı için net, bakımcı için anlaşılır şema.
+          </p>
+        </article>
+
+        <article class="adv-item">
+          <h3>Modüler Mekanik</h3>
+          <p>
+            Farklı sac genişliklerine göre sadece makaralar ve çeneler değişiyor.
+            Aynı gövde ile farklı müşterilere hızlıca uyarlama yapılabiliyor.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Applications -->
+  <section id="applications" class="section">
+    <div class="container">
+      <header class="section-header">
+        <h2>Uygulama Alanları</h2>
+        <p>IronDrive sadece dübel değil, pek çok tekrarlı kesim/büküm işinde kullanılabilir.</p>
+      </header>
+
+      <div class="app-grid">
+        <div class="app-item">
+          <h3>Çelik Dübel Üretimi</h3>
+          <p>Yüksek devirde, düşük fire ile, boy hassasiyetini koruyarak dübel gömleği üretimi.</p>
+        </div>
+        <div class="app-item">
+          <h3>Küçük Parça Kesme & Delme</h3>
+          <p>Şerit halindeki sacdan seri delik delme, kesme işlemleri için hassas ilerleme.</p>
+        </div>
+        <div class="app-item">
+          <h3>Mini Pres Hatları</h3>
+          <p>Atölye içi küçük preslerde kompakt, sessiz ve kontrollü sac ilerletme.</p>
+        </div>
+        <div class="app-item">
+          <h3>Özel Projeler</h3>
+          <p>Müşteriye özel baskı döngüsü, sensör ve haberleşme istekleri için açık mimari.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Support -->
+  <section id="support" class="section section-alt">
+    <div class="container">
+      <header class="section-header">
+        <h2>Doküman & Destek</h2>
+        <p>
+          Sitodrive’daki “Support / Dev Docs” yapısına benzer şekilde: yazılım, elektrik ve mekanik
+          dokümanlar tek yerde.
+        </p>
+      </header>
+
+      <div class="support-grid">
+        <article class="support-card">
+          <h3>Elektrik Bağlantı Şemaları</h3>
+          <p>AC servo sürücü, pres tetik girişleri, endüktif sensörler ve emniyet devreleri.</p>
+          <a href="#" class="link">PDF indir (yakında)</a>
+        </article>
+
+        <article class="support-card">
+          <h3>HMI & Parametre Kılavuzu</h3>
+          <p>Nextion ekran sayfaları, parametre açıklamaları ve tavsiye edilen ayarlar.</p>
+          <a href="#" class="link">Online doküman (yakında)</a>
+        </article>
+
+        <article class="support-card">
+          <h3>API & Uzaktan İzleme</h3>
+          <p>İsteğe bağlı: MQTT/REST ile üretim verisini ERP veya özel yazılımlara aktarma.</p>
+          <a href="#" class="link">JSON örnekleri (yakında)</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="section">
+    <div class="container contact-grid">
+      <div>
+        <header class="section-header align-left">
+          <h2>İletişim & Teklif</h2>
+          <p>Projenizden, pres tonajınızdan ve kullandığınız sac kalınlığından bahsedin; en uygun IronDrive konfigürasyonunu birlikte seçelim.</p>
+        </header>
+
+        <ul class="contact-list">
+          <li><strong>E-posta:</strong> <a href="mailto:info@gozupekteknoloji.com">info@gozupekteknoloji.com</a></li>
+          <li><strong>Konum:</strong> Eyüpsultan, İstanbul</li>
+          <li><strong>Atölye:</strong> Volkan Ticaret – Çelik Dübel Üretimi</li>
+        </ul>
+      </div>
+
+      <form class="contact-form">
+        <label>
+          İsim Soyisim
+          <input type="text" name="name" placeholder="Rıdvan Gözüpek" required />
+        </label>
+        <label>
+          E-posta
+          <input type="email" name="email" placeholder="ornek@firma.com" required />
+        </label>
+        <label>
+          Pres Tonajı & Sac Bilgisi
+          <textarea name="details" rows="4" placeholder="Örn: 63 ton pres, 0.8 mm sac, dakikada 80 devir..."></textarea>
+        </label>
+        <button type="submit" class="btn primary full">Gönder (dummy form)</button>
+        <p class="form-note">
+          Şu an form statik; backend ekleyene kadar sadece taslak olarak duracak.
+        </p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>© <span id="year"></span> Gözüpek Teknoloji – IronDrive Servo Sac Sürücü</p>
+      <p class="footer-small">
+        Bu site, sitodrive.com sitesinin mekanik akışından esinlenilerek tasarlanmış, özgün bir içerik ve tasarım barındırır.
+      </p>
     </div>
   </footer>
 
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
