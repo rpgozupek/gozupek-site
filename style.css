@@ -67,7 +67,7 @@ body {
 .logo {
   display: flex;
   align-items: center;
-  gap: clamp(8px, 1vw, 12px);
+  gap: clamp(80px, 1vw, 120px);
   text-decoration: none;
   color: var(--text);
 }
