@@ -67,7 +67,7 @@ body {
 .logo {
   display: flex;
   align-items: center;
-  gap: 101px;
+  gap: clamp(8px, 1vw, 12px);
   text-decoration: none;
   color: var(--text);
 }
@@ -93,21 +93,21 @@ body {
 
 .logo-img {
   display: block;
-  height: 24px;
+  height: clamp(22px, 2.2vw, 26px);
   width: auto;
 }
 
 .logo-icon {
-  height: 32px;
-  width: 32px;
-  border-radius: 11px;
+  height: clamp(30px, 3vw, 36px);
+  width: clamp(30px, 3vw, 36px);
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
-  padding: 6px;
+  padding: clamp(5px, 0.8vw, 7px);
   box-shadow: var(--shadow-soft);
 }
 
 .logo-wordmark {
-  height: 16px;
+  height: clamp(14px, 1.8vw, 18px);
   width: auto;
   filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.32));
 }
@@ -586,24 +586,6 @@ body {
 
 /* Responsive */
 
-@media (min-width: 1100px) {
-  .logo {
-    gap: 12px;
-  }
-  .logo-img {
-    height: 26px;
-  }
-  .logo-icon {
-    height: 36px;
-    width: 36px;
-    border-radius: 12px;
-    padding: 7px;
-  }
-  .logo-wordmark {
-    height: 18px;
-  }
-}
-
 @media (max-width: 900px) {
   .hero-inner {
     grid-template-columns: minmax(0, 1fr);
@@ -625,22 +607,6 @@ body {
 }
 
 @media (max-width: 640px) {
-  .logo {
-    gap: 8px;
-  }
-  .logo-img {
-    height: 22px;
-  }
-  .logo-icon {
-    height: 28px;
-    width: 28px;
-    border-radius: 10px;
-    padding: 5px;
-  }
-  .logo-wordmark {
-    height: 14px;
-  }
-
   .nav {
     position: absolute;
     inset: 52px 12px auto 12px;
