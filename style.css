@@ -91,6 +91,39 @@ body {
   font-size: 15px;
 }
 
+.logo-img {
+  display: block;
+  height: 26px;
+  width: auto;
+}
+
+.logo-icon {
+  height: 34px;
+  width: 34px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  box-shadow: var(--shadow-soft);
+}
+
+.logo-wordmark {
+  height: 18px;
+  width: auto;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35));
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .nav {
   display: flex;
   gap: 18px;
