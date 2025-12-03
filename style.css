@@ -73,8 +73,8 @@ body {
 }
 
 .logo-mark {
-  width: 32px;
-  height: 32px;
+  width: 80px;
+  height: 80px;
   border-radius: 999px;
   background: radial-gradient(circle at 20% 0, #8fffcc, #35c97d 40%, #157346);
   display: inline-flex;
