@@ -93,13 +93,13 @@ body {
 
 .logo-img {
   display: block;
-  height: clamp(220px, 2.2vw, 260px);
+  height: clamp(22px, 2.2vw, 26px);
   width: auto;
 }
 
 .logo-icon {
-  height: clamp(30px, 3vw, 36px);
-  width: clamp(30px, 3vw, 36px);
+  height: clamp(100px, 3vw, 120px);
+  width: clamp(130px, 3vw, 136px);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   padding: clamp(5px, 0.8vw, 7px);
