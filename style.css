@@ -88,3 +88,43 @@ body {
   background: #020617;
   margin-top: 40px;
 }
+
+
+/* 3D HERO */
+.hero-3d {
+  background: linear-gradient(135deg, #0ea5e9, #020617);
+}
+
+/* Kullanım alanları */
+.use-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Proje galerisi */
+.showcase {
+  margin: 50px auto;
+  text-align: center;
+}
+
+.gallery {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.box {
+  flex: 1;
+  height: 150px;
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+/* CTA */
+.cta {
+  background: #1e3a8a;
+  text-align: center;
+  padding: 50px 20px;
+}
