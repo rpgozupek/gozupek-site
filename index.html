@@ -3,74 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Google Oturum Açma ve Kullanıcı Verisi Kayıt test</title>
+    <title>Firebase Google Oturum Açma ve Kullanıcı Verisi Kaydetme</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
-        #auth-container { margin-top: 30px; }
-        #user-info { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; display: none; text-align: left;}
-        #user-data-form, #saved-user-data { margin-top: 30px; padding: 15px; border: 1px solid #eee; border-radius: 5px; display: none; }
-        #user-data-form label { display: block; margin-bottom: 5px; font-weight: bold; }
-        #user-data-form input[type="number"], #user-data-form input[type="text"] {
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 600px; margin: 30px auto; background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1, h2 { color: #0056b3; margin-bottom: 20px; }
+        #auth-container { margin-bottom: 25px; }
+        #user-info, #user-data-form, #saved-user-data {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            text-align: left;
+            background-color: #f9f9f9;
+        }
+        #user-info { display: none; } /* Başlangıçta gizli */
+        #user-data-form, #saved-user-data { display: none; } /* Başlangıçta gizli */
+
+        #user-data-form label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; color: #555; }
+        #user-data-form input[type="number"],
+        #user-data-form input[type="text"] {
             width: calc(100% - 22px); /* Padding ve border için ayarlama */
             padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
             border-radius: 4px;
+            box-sizing: border-box; /* Padding ve border'ı genişlik içine dahil et */
         }
-        button { padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 4px; }
+        button {
+            padding: 10px 20px;
+            margin: 8px 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
         #google-signin-button { background-color: #4285f4; color: white; border: none; }
+        #google-signin-button:hover { background-color: #357ae8; }
         #signout-button { background-color: #ea4335; color: white; border: none; }
-        #save-user-data-button { background-color: #007bff; color: white; border: none; }
-        .data-label { font-weight: bold; margin-top: 10px; display: block; }
-        .data-value { margin-left: 5px; }
+        #signout-button:hover { background-color: #d83427; }
+        #save-user-data-button { background-color: #28a745; color: white; border: none; }
+        #save-user-data-button:hover { background-color: #218838; }
+
+        .data-label { font-weight: bold; margin-top: 10px; display: inline-block; width: 120px; }
+        .data-value { margin-left: 5px; color: #007bff; }
+        #user-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-top: 10px;
+            display: none;
+            vertical-align: middle;
+            border: 2px solid #ccc;
+        }
     </style>
 </head>
 <body>
-    <h1>Firebase Google Oturum Açma ve Kullanıcı Verisi</h1>
+    <div class="container">
+        <h1>Firebase Google Oturum Açma ve Kullanıcı Verisi Yönetimi</h1>
 
-    <div id="auth-container">
-        <button id="google-signin-button">Google ile Oturum Aç</button>
-        <button id="signout-button" style="display: none;">Oturumu Kapat</button>
-    </div>
+        <div id="auth-container">
+            <button id="google-signin-button">Google ile Oturum Aç</button>
+            <button id="signout-button" style="display: none;">Oturumu Kapat</button>
+        </div>
 
-    <div id="user-info">
-        <h2>Hoş Geldiniz!</h2>
-        <p><strong>Kullanıcı Adı:</strong> <span id="user-display-name"></span></p>
-        <p><strong>E-posta:</strong> <span id="user-email"></span></p>
-        <p><strong>UID:</strong> <span id="user-uid"></span></p>
-        <img id="user-photo" src="" alt="Kullanıcı Fotoğrafı" style="width: 50px; height: 50px; border-radius: 50%; margin-top: 10px; display: none;">
-    </div>
+        <div id="user-info">
+            <h2>Hoş Geldiniz!</h2>
+            <p><span class="data-label">Kullanıcı Adı:</span> <span id="user-display-name" class="data-value"></span></p>
+            <p><span class="data-label">E-posta:</span> <span id="user-email" class="data-value"></span></p>
+            <p><span class="data-label">UID:</span> <span id="user-uid" class="data-value"></span></p>
+            <img id="user-photo" src="" alt="Kullanıcı Fotoğrafı">
+        </div>
 
-    <!-- Kullanıcı Verisi Giriş Alanı -->
-    <div id="user-data-form">
-        <h2>Kişisel Bilgilerinizi Girin</h2>
-        <label for="user-age">Yaş:</label>
-        <input type="number" id="user-age" placeholder="Yaşınızı girin">
+        <!-- Kullanıcı Verisi Giriş Alanı -->
+        <div id="user-data-form">
+            <h2>Kişisel Bilgilerinizi Girin</h2>
+            <label for="user-age">Yaş:</label>
+            <input type="number" id="user-age" placeholder="Yaşınızı girin">
 
-        <label for="user-team">Tuttuğu Takım:</label>
-        <input type="text" id="user-team" placeholder="Tuttuğunuz takımı girin">
+            <label for="user-team">Tuttuğu Takım:</label>
+            <input type="text" id="user-team" placeholder="Tuttuğunuz takımı girin">
 
-        <label for="user-car">Tuttuğu Takım:</label>
-        <input type="text" id="user-car" placeholder="Arabanızın modelini girin">
+            <label for="user-car-model">Araba Modeli:</label>
+            <input type="text" id="user-car-model" placeholder="Araba modelinizi girin">
 
-        <button id="save-user-data-button">Bilgileri Kaydet</button>
-    </div>
+            <button id="save-user-data-button">Bilgileri Kaydet</button>
+        </div>
 
-    <!-- Kaydedilen Kullanıcı Verilerini Gösterme Alanı -->
-    <div id="saved-user-data">
-        <h2>Kaydedilmiş Bilgileriniz</h2>
-        <p><span class="data-label">Yaş:</span> <span id="display-age" class="data-value"></span></p>
-        <p><span class="data-label">Tuttuğu Takım:</span> <span id="display-team" class="data-value"></span></p>
-        <p><span class="data-label">Tuttuğu Takım:</span> <span id="display-car" class="data-value"></span></p>
+        <!-- Kaydedilen Kullanıcı Verilerini Gösterme Alanı -->
+        <div id="saved-user-data">
+            <h2>Kaydedilmiş Bilgileriniz</h2>
+            <p><span class="data-label">Yaş:</span> <span id="display-age" class="data-value"></span></p>
+            <p><span class="data-label">Tuttuğu Takım:</span> <span id="display-team" class="data-value"></span></p>
+            <p><span class="data-label">Araba Modeli:</span> <span id="display-car-model" class="data-value"></span></p>
+        </div>
     </div>
 
     <!-- Firebase SDK Yükleme -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script> <!-- Firestore SDK eklendi -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script>
-        // Sizin Firebase yapılandırma bilgileriniz
+        // Lütfen buradaki Firebase yapılandırma bilgilerini kendi projenizin bilgileriyle değiştirin.
+        // Firebase Konsolu -> Proje Ayarları -> Uygulamalarım -> Web uygulamanız kısmından alabilirsiniz.
         const firebaseConfig = {
             apiKey: "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE",
             authDomain: "website-gozupekteknoloji.firebaseapp.com",
@@ -86,9 +122,10 @@
 
         // Firebase Auth ve Firestore referanslarını al
         const auth = firebase.auth();
-        const db = firebase.firestore(); // Firestore referansı alındı
+        const db = firebase.firestore();
         const googleProvider = new firebase.auth.GoogleAuthProvider();
 
+        // HTML elementlerine referanslar
         const googleSignInButton = document.getElementById('google-signin-button');
         const signOutButton = document.getElementById('signout-button');
         const userInfoDiv = document.getElementById('user-info');
@@ -100,12 +137,13 @@
         const userDataForm = document.getElementById('user-data-form');
         const userAgeInput = document.getElementById('user-age');
         const userTeamInput = document.getElementById('user-team');
-        const userCarInput = document.getElementById('user-car');
+        const userCarModelInput = document.getElementById('user-car-model'); // Yeni: Araba Modeli inputu
         const saveUserDataButton = document.getElementById('save-user-data-button');
         const savedUserDataDiv = document.getElementById('saved-user-data');
         const displayAge = document.getElementById('display-age');
         const displayTeam = document.getElementById('display-team');
-        const displayCar = document.getElementById('display-car');
+        const displayCarModel = document.getElementById('display-car-model'); // Yeni: Araba Modeli gösterimi
+
         // Google ile Oturum Açma Fonksiyonu
         googleSignInButton.addEventListener('click', async () => {
             try {
@@ -134,12 +172,14 @@
             if (user) {
                 const age = userAgeInput.value ? parseInt(userAgeInput.value) : null;
                 const team = userTeamInput.value.trim();
+                const carModel = userCarModelInput.value.trim(); // Yeni: Araba Modeli verisi alındı
 
                 try {
                     await db.collection("users").doc(user.uid).set({
                         age: age,
                         team: team,
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp() // Bilginin ne zaman güncellendiğini kaydeder
+                        carModel: carModel, // Yeni: Araba Modeli Firestore'a gönderildi
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true }); // Mevcut alanları koruyarak sadece verilenleri günceller
 
                     alert("Bilgileriniz başarıyla kaydedildi!");
@@ -161,18 +201,21 @@
                     const data = doc.data();
                     displayAge.textContent = data.age || 'N/A';
                     displayTeam.textContent = data.team || 'N/A';
-                    displayCar.textContent = data.car || 'N/A';
+                    displayCarModel.textContent = data.carModel || 'N/A'; // Yeni: Araba Modeli gösterildi
+
                     userAgeInput.value = data.age || ''; // Input alanlarını da güncelleyelim
                     userTeamInput.value = data.team || '';
-                    userCarInput.value = data.car || '';
+                    userCarModelInput.value = data.carModel || ''; // Yeni: Araba Modeli inputu güncellendi
+
                     savedUserDataDiv.style.display = 'block';
                 } else {
                     displayAge.textContent = 'Henüz kaydedilmemiş';
                     displayTeam.textContent = 'Henüz kaydedilmemiş';
-                    displayCar.textContent = 'Henüz kaydedilmemiş';
+                    displayCarModel.textContent = 'Henüz kaydedilmemiş'; // Yeni: Araba Modeli için de
                     userAgeInput.value = '';
                     userTeamInput.value = '';
-                    savedUserDataDiv.style.display = 'block'; // Alanı yine de göster
+                    userCarModelInput.value = '';
+                    savedUserDataDiv.style.display = 'block';
                 }
             } catch (error) {
                 console.error("Kullanıcı verilerini yükleme hatası:", error);
@@ -218,8 +261,10 @@
 
                 userAgeInput.value = '';
                 userTeamInput.value = '';
+                userCarModelInput.value = ''; // Yeni: Araba Modeli inputu temizlendi
                 displayAge.textContent = '';
                 displayTeam.textContent = '';
+                displayCarModel.textContent = ''; // Yeni: Araba Modeli gösterimi temizlendi
 
                 console.log("Kullanıcı durumu: Oturum kapalı");
             }
