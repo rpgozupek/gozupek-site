@@ -1,62 +1,125 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gozupek Teknoloji</title>
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Google Oturum Açma Örneği</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
+        #auth-container { margin-top: 30px; }
+        #user-info { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; display: none; text-align: left;}
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        #google-signin-button { background-color: #4285f4; color: white; border: none; }
+        #signout-button { background-color: #ea4335; color: white; border: none; }
+    </style>
 </head>
 <body>
+    <h1>Firebase Google Oturum Açma</h1>
 
-<header class="header">
-  <div class="container nav">
-    <h2 class="logo">Gozupek</h2>
-    <nav>
-      <a href="#">Ana Sayfa</a>
-      <a href="#">Ürünler</a>
-      <a href="#">Hakkımızda</a>
-      <a href="#">İletişim</a>
-      <a href="3d.html">3D</a>
-    </nav>
-  </div>
-</header>
+    <div id="auth-container">
+        <button id="google-signin-button">Google ile Oturum Aç</button>
+        <button id="signout-button" style="display: none;">Oturumu Kapat</button>
+    </div>
 
-<section class="hero">
-  <div class="container">
-    <h1>Endüstriyel Teknolojide Yeni Nesil Çözümler</h1>
-    <p>Pres hatları için akıllı servo sürücüler ve otomasyon sistemleri</p>
-    <a href="#" class="btn">Ürünleri İncele</a>
-  </div>
-</section>
+    <div id="user-info">
+        <h2>Hoş Geldiniz!</h2>
+        <p><strong>Kullanıcı Adı:</strong> <span id="user-display-name"></span></p>
+        <p><strong>E-posta:</strong> <span id="user-email"></span></p>
+        <p><strong>UID:</strong> <span id="user-uid"></span></p>
+        <img id="user-photo" src="" alt="Kullanıcı Fotoğrafı" style="width: 50px; height: 50px; border-radius: 50%; margin-top: 10px; display: none;">
+    </div>
 
-<section class="features container">
-  <div class="card">
-    <h3>⚡ Yüksek Performans</h3>
-    <p>Gerçek zamanlı kontrol ile maksimum verimlilik</p>
-  </div>
-  <div class="card">
-    <h3>🔧 Kolay Entegrasyon</h3>
-    <p>Mevcut sistemlerle sorunsuz uyum</p>
-  </div>
-  <div class="card">
-    <h3>📊 Akıllı Analiz</h3>
-    <p>Veri takibi ve gelişmiş raporlama</p>
-  </div>
-</section>
+    <!-- Firebase SDK Yükleme -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 
-<section class="about">
-  <div class="container">
-    <h2>Biz Kimiz?</h2>
-    <p>
-      Gozupek Teknoloji, endüstriyel otomasyon ve servo sürücü sistemleri alanında
-      yenilikçi çözümler sunar. Müşterilerimize hız, güvenilirlik ve verimlilik kazandırıyoruz.
-    </p>
-  </div>
-</section>
+    <script>
+        // TODO: Buradaki Firebase yapılandırma bilgilerini kendi projenizin bilgileriyle değiştirin.
+        // Firebase Konsolu -> Proje Ayarları -> Uygulamalarım -> Web uygulamanız
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID",
+            measurementId: "YOUR_MEASUREMENT_ID" // İsteğe bağlı
+        };
 
-<footer class="footer">
-  <p>© 2026 Gozupek Teknoloji</p>
-</footer>
+        // Firebase'i Başlat
+        firebase.initializeApp(firebaseConfig);
 
+        // Firebase Auth referansını al
+        const auth = firebase.auth();
+        const googleProvider = new firebase.auth.GoogleAuthProvider(); //
+
+        const googleSignInButton = document.getElementById('google-signin-button');
+        const signOutButton = document.getElementById('signout-button');
+        const userInfoDiv = document.getElementById('user-info');
+        const userDisplayName = document.getElementById('user-display-name');
+        const userEmail = document.getElementById('user-email');
+        const userUid = document.getElementById('user-uid');
+        const userPhoto = document.getElementById('user-photo');
+
+        // Google ile Oturum Açma Fonksiyonu
+        googleSignInButton.addEventListener('click', async () => {
+            try {
+                const result = await auth.signInWithPopup(googleProvider); //
+                const user = result.user;
+                console.log("Kullanıcı başarıyla oturum açtı:", user);
+                // UI, onAuthStateChanged tarafından güncellenecek
+            } catch (error) {
+                console.error("Google ile oturum açma hatası:", error);
+                alert("Oturum açma sırasında bir hata oluştu: " + error.message);
+            }
+        });
+
+        // Oturumu Kapatma Fonksiyonu
+        signOutButton.addEventListener('click', async () => {
+            try {
+                await auth.signOut(); //
+                console.log("Kullanıcı oturumu kapattı.");
+                // UI, onAuthStateChanged tarafından güncellenecek
+            } catch (error) {
+                console.error("Oturumu kapatma hatası:", error);
+                alert("Oturumu kapatma sırasında bir hata oluştu: " + error.message);
+            }
+        });
+
+        // Kimlik Doğrulama Durumu Değişikliklerini Dinle
+        auth.onAuthStateChanged((user) => { //
+            if (user) {
+                // Kullanıcı oturum açmış
+                googleSignInButton.style.display = 'none';
+                signOutButton.style.display = 'inline-block';
+                userInfoDiv.style.display = 'block';
+
+                userDisplayName.textContent = user.displayName;
+                userEmail.textContent = user.email;
+                userUid.textContent = user.uid;
+
+                if (user.photoURL) {
+                    userPhoto.src = user.photoURL;
+                    userPhoto.style.display = 'inline-block';
+                } else {
+                    userPhoto.style.display = 'none';
+                }
+
+                console.log("Kullanıcı durumu: Oturum açık", user);
+            } else {
+                // Kullanıcı oturum kapatmış
+                googleSignInButton.style.display = 'inline-block';
+                signOutButton.style.display = 'none';
+                userInfoDiv.style.display = 'none';
+                userDisplayName.textContent = '';
+                userEmail.textContent = '';
+                userUid.textContent = '';
+                userPhoto.src = '';
+                userPhoto.style.display = 'none';
+
+                console.log("Kullanıcı durumu: Oturum kapalı");
+            }
+        });
+    </script>
 </body>
 </html>
