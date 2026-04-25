@@ -3,21 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Google Oturum Açma Örneği</title>
+    <title>Firebase Google Oturum Açma ve Kullanıcı Verisi Kaydetme</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; text-align: center; }
         #auth-container { margin-top: 30px; }
         #user-info { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; display: none; text-align: left;}
-        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
-        #google-signin-button { background-color: #f44242; color: white; border: none; }
+        #user-data-form, #saved-user-data { margin-top: 30px; padding: 15px; border: 1px solid #eee; border-radius: 5px; display: none; }
+        #user-data-form label { display: block; margin-bottom: 5px; font-weight: bold; }
+        #user-data-form input[type="number"], #user-data-form input[type="text"] {
+            width: calc(100% - 22px); /* Padding ve border için ayarlama */
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 4px; }
+        #google-signin-button { background-color: #4285f4; color: white; border: none; }
         #signout-button { background-color: #ea4335; color: white; border: none; }
+        #save-user-data-button { background-color: #007bff; color: white; border: none; }
+        .data-label { font-weight: bold; margin-top: 10px; display: block; }
+        .data-value { margin-left: 5px; }
     </style>
 </head>
 <body>
-    <h1>Firebase Google Oturum Açma</h1>
+    <h1>Firebase Google Oturum Açma ve Kullanıcı Verisi</h1>
 
     <div id="auth-container">
-        <button id="google-signin-button">Googlee ile Oturum Aç</button>
+        <button id="google-signin-button">Google ile Oturum Aç</button>
         <button id="signout-button" style="display: none;">Oturumu Kapat</button>
     </div>
 
@@ -29,13 +41,32 @@
         <img id="user-photo" src="" alt="Kullanıcı Fotoğrafı" style="width: 50px; height: 50px; border-radius: 50%; margin-top: 10px; display: none;">
     </div>
 
+    <!-- Kullanıcı Verisi Giriş Alanı -->
+    <div id="user-data-form">
+        <h2>Kişisel Bilgilerinizi Girin</h2>
+        <label for="user-age">Yaş:</label>
+        <input type="number" id="user-age" placeholder="Yaşınızı girin">
+
+        <label for="user-team">Tuttuğu Takım:</label>
+        <input type="text" id="user-team" placeholder="Tuttuğunuz takımı girin">
+
+        <button id="save-user-data-button">Bilgileri Kaydet</button>
+    </div>
+
+    <!-- Kaydedilen Kullanıcı Verilerini Gösterme Alanı -->
+    <div id="saved-user-data">
+        <h2>Kaydedilmiş Bilgileriniz</h2>
+        <p><span class="data-label">Yaş:</span> <span id="display-age" class="data-value"></span></p>
+        <p><span class="data-label">Tuttuğu Takım:</span> <span id="display-team" class="data-value"></span></p>
+    </div>
+
     <!-- Firebase SDK Yükleme -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script> <!-- Firestore SDK eklendi -->
 
     <script>
-        // TODO: Buradaki Firebase yapılandırma bilgilerini kendi projenizin bilgileriyle değiştirin.
-        // Firebase Konsolu -> Proje Ayarları -> Uygulamalarım -> Web uygulamanız
+        // Sizin Firebase yapılandırma bilgileriniz
         const firebaseConfig = {
             apiKey: "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE",
             authDomain: "website-gozupekteknoloji.firebaseapp.com",
@@ -43,15 +74,16 @@
             storageBucket: "website-gozupekteknoloji.firebasestorage.app",
             messagingSenderId: "941332210669",
             appId: "1:941332210669:web:9547087e4a6d126c173de4",
-            measurementId: "G-RPLGF3F943" // İsteğe bağlı
+            measurementId: "G-RPLGF3F943"
         };
 
         // Firebase'i Başlat
         firebase.initializeApp(firebaseConfig);
 
-        // Firebase Auth referansını al
+        // Firebase Auth ve Firestore referanslarını al
         const auth = firebase.auth();
-        const googleProvider = new firebase.auth.GoogleAuthProvider(); //
+        const db = firebase.firestore(); // Firestore referansı alındı
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
 
         const googleSignInButton = document.getElementById('google-signin-button');
         const signOutButton = document.getElementById('signout-button');
@@ -61,12 +93,18 @@
         const userUid = document.getElementById('user-uid');
         const userPhoto = document.getElementById('user-photo');
 
+        const userDataForm = document.getElementById('user-data-form');
+        const userAgeInput = document.getElementById('user-age');
+        const userTeamInput = document.getElementById('user-team');
+        const saveUserDataButton = document.getElementById('save-user-data-button');
+        const savedUserDataDiv = document.getElementById('saved-user-data');
+        const displayAge = document.getElementById('display-age');
+        const displayTeam = document.getElementById('display-team');
+
         // Google ile Oturum Açma Fonksiyonu
         googleSignInButton.addEventListener('click', async () => {
             try {
-                const result = await auth.signInWithPopup(googleProvider); //
-                const user = result.user;
-                console.log("Kullanıcı başarıyla oturum açtı:", user);
+                const result = await auth.signInWithPopup(googleProvider);
                 // UI, onAuthStateChanged tarafından güncellenecek
             } catch (error) {
                 console.error("Google ile oturum açma hatası:", error);
@@ -77,8 +115,7 @@
         // Oturumu Kapatma Fonksiyonu
         signOutButton.addEventListener('click', async () => {
             try {
-                await auth.signOut(); //
-                console.log("Kullanıcı oturumu kapattı.");
+                await auth.signOut();
                 // UI, onAuthStateChanged tarafından güncellenecek
             } catch (error) {
                 console.error("Oturumu kapatma hatası:", error);
@@ -86,13 +123,63 @@
             }
         });
 
+        // Kullanıcı Verilerini Kaydetme Fonksiyonu
+        saveUserDataButton.addEventListener('click', async () => {
+            const user = auth.currentUser;
+            if (user) {
+                const age = userAgeInput.value ? parseInt(userAgeInput.value) : null;
+                const team = userTeamInput.value.trim();
+
+                try {
+                    await db.collection("users").doc(user.uid).set({
+                        age: age,
+                        team: team,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp() // Bilginin ne zaman güncellendiğini kaydeder
+                    }, { merge: true }); // Mevcut alanları koruyarak sadece verilenleri günceller
+
+                    alert("Bilgileriniz başarıyla kaydedildi!");
+                    loadUserData(user.uid); // Kaydedildikten sonra verileri tekrar yükle
+                } catch (error) {
+                    console.error("Kullanıcı verilerini kaydetme hatası:", error);
+                    alert("Bilgileri kaydederken bir hata oluştu: " + error.message);
+                }
+            } else {
+                alert("Lütfen önce oturum açın.");
+            }
+        });
+
+        // Kullanıcı Verilerini Yükleme Fonksiyonu
+        async function loadUserData(uid) {
+            try {
+                const doc = await db.collection("users").doc(uid).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    displayAge.textContent = data.age || 'N/A';
+                    displayTeam.textContent = data.team || 'N/A';
+                    userAgeInput.value = data.age || ''; // Input alanlarını da güncelleyelim
+                    userTeamInput.value = data.team || '';
+                    savedUserDataDiv.style.display = 'block';
+                } else {
+                    displayAge.textContent = 'Henüz kaydedilmemiş';
+                    displayTeam.textContent = 'Henüz kaydedilmemiş';
+                    userAgeInput.value = '';
+                    userTeamInput.value = '';
+                    savedUserDataDiv.style.display = 'block'; // Alanı yine de göster
+                }
+            } catch (error) {
+                console.error("Kullanıcı verilerini yükleme hatası:", error);
+                alert("Bilgileri yüklerken bir hata oluştu: " + error.message);
+            }
+        }
+
         // Kimlik Doğrulama Durumu Değişikliklerini Dinle
-        auth.onAuthStateChanged((user) => { //
+        auth.onAuthStateChanged((user) => {
             if (user) {
                 // Kullanıcı oturum açmış
                 googleSignInButton.style.display = 'none';
                 signOutButton.style.display = 'inline-block';
                 userInfoDiv.style.display = 'block';
+                userDataForm.style.display = 'block'; // Formu göster
 
                 userDisplayName.textContent = user.displayName;
                 userEmail.textContent = user.email;
@@ -105,17 +192,26 @@
                     userPhoto.style.display = 'none';
                 }
 
+                loadUserData(user.uid); // Oturum açınca kullanıcının verilerini yükle
                 console.log("Kullanıcı durumu: Oturum açık", user);
             } else {
                 // Kullanıcı oturum kapatmış
                 googleSignInButton.style.display = 'inline-block';
                 signOutButton.style.display = 'none';
                 userInfoDiv.style.display = 'none';
+                userDataForm.style.display = 'none'; // Formu gizle
+                savedUserDataDiv.style.display = 'none'; // Kaydedilen verileri gizle
+
                 userDisplayName.textContent = '';
                 userEmail.textContent = '';
                 userUid.textContent = '';
                 userPhoto.src = '';
                 userPhoto.style.display = 'none';
+
+                userAgeInput.value = '';
+                userTeamInput.value = '';
+                displayAge.textContent = '';
+                displayTeam.textContent = '';
 
                 console.log("Kullanıcı durumu: Oturum kapalı");
             }
