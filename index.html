@@ -61,6 +61,7 @@
         <h2>Kaydedilmiş Bilgileriniz</h2>
         <p><span class="data-label">Yaş:</span> <span id="display-age" class="data-value"></span></p>
         <p><span class="data-label">Tuttuğu Takım:</span> <span id="display-team" class="data-value"></span></p>
+        <p><span class="data-label">Tuttuğu Takım:</span> <span id="display-car" class="data-value"></span></p>
     </div>
 
     <!-- Firebase SDK Yükleme -->
@@ -103,7 +104,7 @@
         const savedUserDataDiv = document.getElementById('saved-user-data');
         const displayAge = document.getElementById('display-age');
         const displayTeam = document.getElementById('display-team');
-
+        const displayTeam = document.getElementById('display-car');
         // Google ile Oturum Açma Fonksiyonu
         googleSignInButton.addEventListener('click', async () => {
             try {
