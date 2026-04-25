@@ -100,6 +100,7 @@
         const userDataForm = document.getElementById('user-data-form');
         const userAgeInput = document.getElementById('user-age');
         const userTeamInput = document.getElementById('user-team');
+        const userCarInput = document.getElementById('user-car');
         const saveUserDataButton = document.getElementById('save-user-data-button');
         const savedUserDataDiv = document.getElementById('saved-user-data');
         const displayAge = document.getElementById('display-age');
@@ -163,6 +164,7 @@
                     displayCar.textContent = data.car || 'N/A';
                     userAgeInput.value = data.age || ''; // Input alanlarını da güncelleyelim
                     userTeamInput.value = data.team || '';
+                    userCarInput.value = data.car || '';
                     savedUserDataDiv.style.display = 'block';
                 } else {
                     displayAge.textContent = 'Henüz kaydedilmemiş';
