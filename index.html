@@ -89,7 +89,7 @@
 
             <button id="save-user-data-button">Bilgileri Kaydet</button>
         </div>
-        <div id="device-management">
+        <div id="device-management" style="display: none;">
             <h2>Cihazlarım</h2>
     
             <div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
@@ -132,6 +132,114 @@
 
         // Firebase'i Başlat
         firebase.initializeApp(firebaseConfig);
+        // --- 1. REFERANSLAR (HTML Elementleri) ---
+        const googleSignInButton = document.getElementById('google-signin-button');
+        const signOutButton = document.getElementById('signout-button');
+        const userInfoDiv = document.getElementById('user-info');
+        const userDataForm = document.getElementById('user-data-form');
+        const savedUserDataDiv = document.getElementById('saved-user-data');
+        
+        // Cihaz Paneli Referansları
+        const deviceManagementDiv = document.getElementById('device-management');
+        const deviceListDiv = document.getElementById('device-list');
+        const addDeviceButton = document.getElementById('add-device-button');
+        const newDeviceIdInput = document.getElementById('new-device-id');
+        const newDeviceNameInput = document.getElementById('new-device-name');
+
+        // --- 2. OTURUM YÖNETİMİ ---
+        googleSignInButton.addEventListener('click', async () => {
+            const googleProvider = new firebase.auth.GoogleAuthProvider();
+            try { await auth.signInWithPopup(googleProvider); } 
+            catch (error) { alert("Hata: " + error.message); }
+        });
+
+        signOutButton.addEventListener('click', () => auth.signOut());
+
+        // --- 3. CİHAZ YÖNETİM FONKSİYONLARI ---
+
+        // Cihaz Ekleme Butonu Dinleyicisi
+        addDeviceButton.addEventListener('click', async () => {
+            const user = auth.currentUser;
+            const deviceId = newDeviceIdInput.value.trim();
+            const deviceName = newDeviceNameInput.value.trim();
+
+            if (user && deviceId && deviceName) {
+                try {
+                    await db.collection("devices").doc(deviceId).set({
+                        ownerUid: user.uid,
+                        deviceName: deviceName,
+                        status: false,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    
+                    alert("Cihaz eklendi!");
+                    newDeviceIdInput.value = "";
+                    newDeviceNameInput.value = "";
+                } catch (error) {
+                    alert("Cihaz eklenemedi (Yetki hatası olabilir): " + error.message);
+                }
+            } else {
+                alert("Lütfen ID ve İsim alanlarını doldurun.");
+            }
+        });
+
+        // Cihazları Listeleme ve Dinleme (Real-time)
+        function listenUserDevices(uid) {
+            db.collection("devices").where("ownerUid", "==", uid)
+            .onSnapshot((snapshot) => {
+                deviceListDiv.innerHTML = ""; 
+                if (snapshot.empty) {
+                    deviceListDiv.innerHTML = "<p>Henüz kayıtlı cihaz yok.</p>";
+                    return;
+                }
+                snapshot.forEach((doc) => {
+                    const device = doc.data();
+                    const id = doc.id;
+                    const card = document.createElement('div');
+                    card.style = "background:#fff; border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;";
+                    card.innerHTML = `
+                        <div><strong>${device.deviceName}</strong><br><small>${id}</small></div>
+                        <button onclick="toggleDevice('${id}', ${device.status})" 
+                                style="background:${device.status ? '#28a745' : '#ea4335'}; color:white; border:none; padding:5px 15px;">
+                            ${device.status ? 'AÇIK' : 'KAPALI'}
+                        </button>
+                    `;
+                    deviceListDiv.appendChild(card);
+                });
+            });
+        }
+
+        // Butonla Cihazı Aç/Kapat
+        window.toggleDevice = async (id, currentStatus) => {
+            try {
+                await db.collection("devices").doc(id).update({
+                    status: !currentStatus,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (error) { alert("Hata: " + error.message); }
+        };
+
+        // --- 4. ANA DURUM KONTROLÜ (onAuthStateChanged) ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Giriş yapıldıysa gösterilecekler
+                googleSignInButton.style.display = 'none';
+                signOutButton.style.display = 'inline-block';
+                userInfoDiv.style.display = 'block';
+                userDataForm.style.display = 'block';
+                deviceManagementDiv.style.display = 'block'; // PANELİ AÇAR
+                
+                listenUserDevices(user.uid); // Cihazları yükle
+            } else {
+                // Giriş yoksa gizlenecekler
+                googleSignInButton.style.display = 'inline-block';
+                signOutButton.style.display = 'none';
+                userInfoDiv.style.display = 'none';
+                userDataForm.style.display = 'none';
+                deviceManagementDiv.style.display = 'none'; // PANELİ KAPATIR
+                deviceListDiv.innerHTML = "";
+            }
+        });
 
         // Firebase Auth ve Firestore referanslarını al
         const auth = firebase.auth();
