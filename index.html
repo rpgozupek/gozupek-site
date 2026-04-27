@@ -118,278 +118,139 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script>
-        // Lütfen buradaki Firebase yapılandırma bilgilerini kendi projenizin bilgileriyle değiştirin.
-        // Firebase Konsolu -> Proje Ayarları -> Uygulamalarım -> Web uygulamanız kısmından alabilirsiniz.
-        const firebaseConfig = {
-            apiKey: "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE",
-            authDomain: "website-gozupekteknoloji.firebaseapp.com",
-            projectId: "website-gozupekteknoloji",
-            storageBucket: "website-gozupekteknoloji.firebasestorage.app",
-            messagingSenderId: "941332210669",
-            appId: "1:941332210669:web:9547087e4a6d126c173de4",
-            measurementId: "G-RPLGF3F943"
-        };
+        // 1. Firebase Yapılandırması (Senin mevcut config bilgilerin)
+const firebaseConfig = {
+    apiKey: "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE",
+    authDomain: "website-gozupekteknoloji.firebaseapp.com",
+    projectId: "website-gozupekteknoloji",
+    storageBucket: "website-gozupekteknoloji.firebasestorage.app",
+    messagingSenderId: "941332210669",
+    appId: "1:941332210669:web:9547087e4a6d126c173de4",
+    measurementId: "G-RPLGF3F943"
+};
 
-        // Firebase'i Başlat
-        firebase.initializeApp(firebaseConfig);
-        // --- 1. REFERANSLAR (HTML Elementleri) ---
-        const googleSignInButton = document.getElementById('google-signin-button');
-        const signOutButton = document.getElementById('signout-button');
-        const userInfoDiv = document.getElementById('user-info');
-        const userDataForm = document.getElementById('user-data-form');
-        const savedUserDataDiv = document.getElementById('saved-user-data');
+// 2. Firebase'i Başlat
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// 3. HTML Element Referansları
+const googleSignInButton = document.getElementById('google-signin-button');
+const signOutButton = document.getElementById('signout-button');
+const userInfoDiv = document.getElementById('user-info');
+const userDataForm = document.getElementById('user-data-form');
+const deviceManagementDiv = document.getElementById('device-management');
+const deviceListDiv = document.getElementById('device-list');
+const addDeviceButton = document.getElementById('add-device-button');
+const newDeviceIdInput = document.getElementById('new-device-id');
+const newDeviceNameInput = document.getElementById('new-device-name');
+
+// 4. OTURUM İŞLEMLERİ
+googleSignInButton.addEventListener('click', async () => {
+    const googleProvider = new firebase.auth.GoogleAuthProvider();
+    try {
+        await auth.signInWithPopup(googleProvider);
+    } catch (error) {
+        console.error("Giriş hatası:", error);
+        alert("Oturum açılamadı: " + error.message);
+    }
+});
+
+signOutButton.addEventListener('click', () => {
+    auth.signOut().catch(err => alert("Çıkış hatası: " + err.message));
+});
+
+// 5. CİHAZ YÖNETİMİ
+addDeviceButton.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    const deviceId = newDeviceIdInput.value.trim();
+    const deviceName = newDeviceNameInput.value.trim();
+
+    if (user && deviceId && deviceName) {
+        try {
+            await db.collection("devices").doc(deviceId).set({
+                ownerUid: user.uid,
+                deviceName: deviceName,
+                status: false,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            alert("Cihaz başarıyla eklendi!");
+            newDeviceIdInput.value = "";
+            newDeviceNameInput.value = "";
+        } catch (error) {
+            alert("Cihaz ekleme hatası: " + error.message);
+        }
+    } else {
+        alert("Lütfen tüm alanları doldurun.");
+    }
+});
+
+function listenUserDevices(uid) {
+    db.collection("devices").where("ownerUid", "==", uid)
+    .onSnapshot((snapshot) => {
+        deviceListDiv.innerHTML = ""; 
+        if (snapshot.empty) {
+            deviceListDiv.innerHTML = "<p>Henüz kayıtlı bir cihazınız yok.</p>";
+            return;
+        }
+        snapshot.forEach((doc) => {
+            const device = doc.data();
+            const id = doc.id;
+            const card = document.createElement('div');
+            card.style = "background:#fff; border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;";
+            card.innerHTML = `
+                <div><strong>${device.deviceName}</strong><br><small>ID: ${id}</small></div>
+                <button onclick="toggleDevice('${id}', ${device.status})" 
+                        style="background:${device.status ? '#28a745' : '#ea4335'}; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px;">
+                    ${device.status ? 'AÇIK' : 'KAPALI'}
+                </button>
+            `;
+            deviceListDiv.appendChild(card);
+        });
+    }, (error) => {
+        console.error("Dinleme hatası:", error);
+    });
+}
+
+window.toggleDevice = async (id, currentStatus) => {
+    try {
+        await db.collection("devices").doc(id).update({
+            status: !currentStatus,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (error) {
+        alert("Durum güncellenemedi: " + error.message);
+    }
+};
+
+// 6. DURUM KONTROLÜ
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        googleSignInButton.style.display = 'none';
+        signOutButton.style.display = 'inline-block';
+        userInfoDiv.style.display = 'block';
+        userDataForm.style.display = 'block';
+        deviceManagementDiv.style.display = 'block';
         
-        // Cihaz Paneli Referansları
-        const deviceManagementDiv = document.getElementById('device-management');
-        const deviceListDiv = document.getElementById('device-list');
-        const addDeviceButton = document.getElementById('add-device-button');
-        const newDeviceIdInput = document.getElementById('new-device-id');
-        const newDeviceNameInput = document.getElementById('new-device-name');
+        // Kullanıcı verilerini göster (Eski kodundaki kısımlar)
+        document.getElementById('user-display-name').textContent = user.displayName;
+        document.getElementById('user-email').textContent = user.email;
+        document.getElementById('user-uid').textContent = user.uid;
 
-        // --- 2. OTURUM YÖNETİMİ ---
-        googleSignInButton.addEventListener('click', async () => {
-            const googleProvider = new firebase.auth.GoogleAuthProvider();
-            try { await auth.signInWithPopup(googleProvider); } 
-            catch (error) { alert("Hata: " + error.message); }
-        });
-
-        signOutButton.addEventListener('click', () => auth.signOut());
-
-        // --- 3. CİHAZ YÖNETİM FONKSİYONLARI ---
-
-        // Cihaz Ekleme Butonu Dinleyicisi
-        addDeviceButton.addEventListener('click', async () => {
-            const user = auth.currentUser;
-            const deviceId = newDeviceIdInput.value.trim();
-            const deviceName = newDeviceNameInput.value.trim();
-
-            if (user && deviceId && deviceName) {
-                try {
-                    await db.collection("devices").doc(deviceId).set({
-                        ownerUid: user.uid,
-                        deviceName: deviceName,
-                        status: false,
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                    
-                    alert("Cihaz eklendi!");
-                    newDeviceIdInput.value = "";
-                    newDeviceNameInput.value = "";
-                } catch (error) {
-                    alert("Cihaz eklenemedi (Yetki hatası olabilir): " + error.message);
-                }
-            } else {
-                alert("Lütfen ID ve İsim alanlarını doldurun.");
-            }
-        });
-
-        // Cihazları Listeleme ve Dinleme (Real-time)
-        function listenUserDevices(uid) {
-            db.collection("devices").where("ownerUid", "==", uid)
-            .onSnapshot((snapshot) => {
-                deviceListDiv.innerHTML = ""; 
-                if (snapshot.empty) {
-                    deviceListDiv.innerHTML = "<p>Henüz kayıtlı cihaz yok.</p>";
-                    return;
-                }
-                snapshot.forEach((doc) => {
-                    const device = doc.data();
-                    const id = doc.id;
-                    const card = document.createElement('div');
-                    card.style = "background:#fff; border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;";
-                    card.innerHTML = `
-                        <div><strong>${device.deviceName}</strong><br><small>${id}</small></div>
-                        <button onclick="toggleDevice('${id}', ${device.status})" 
-                                style="background:${device.status ? '#28a745' : '#ea4335'}; color:white; border:none; padding:5px 15px;">
-                            ${device.status ? 'AÇIK' : 'KAPALI'}
-                        </button>
-                    `;
-                    deviceListDiv.appendChild(card);
-                });
-            });
-        }
-
-        // Butonla Cihazı Aç/Kapat
-        window.toggleDevice = async (id, currentStatus) => {
-            try {
-                await db.collection("devices").doc(id).update({
-                    status: !currentStatus,
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch (error) { alert("Hata: " + error.message); }
-        };
-
-        // --- 4. ANA DURUM KONTROLÜ (onAuthStateChanged) ---
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // Giriş yapıldıysa gösterilecekler
-                googleSignInButton.style.display = 'none';
-                signOutButton.style.display = 'inline-block';
-                userInfoDiv.style.display = 'block';
-                userDataForm.style.display = 'block';
-                deviceManagementDiv.style.display = 'block'; // PANELİ AÇAR
-                
-                listenUserDevices(user.uid); // Cihazları yükle
-            } else {
-                // Giriş yoksa gizlenecekler
-                googleSignInButton.style.display = 'inline-block';
-                signOutButton.style.display = 'none';
-                userInfoDiv.style.display = 'none';
-                userDataForm.style.display = 'none';
-                deviceManagementDiv.style.display = 'none'; // PANELİ KAPATIR
-                deviceListDiv.innerHTML = "";
-            }
-        });
-
-        // Firebase Auth ve Firestore referanslarını al
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const googleProvider = new firebase.auth.GoogleAuthProvider();
-
-        // HTML elementlerine referanslar
-        const googleSignInButton = document.getElementById('google-signin-button');
-        const signOutButton = document.getElementById('signout-button');
-        const userInfoDiv = document.getElementById('user-info');
-        const userDisplayName = document.getElementById('user-display-name');
-        const userEmail = document.getElementById('user-email');
-        const userUid = document.getElementById('user-uid');
-        const userPhoto = document.getElementById('user-photo');
-
-        const userDataForm = document.getElementById('user-data-form');
-        const userAgeInput = document.getElementById('user-age');
-        const userTeamInput = document.getElementById('user-team');
-        const userCarModelInput = document.getElementById('user-car-model'); // Yeni: Araba Modeli inputu
-        const saveUserDataButton = document.getElementById('save-user-data-button');
-        const savedUserDataDiv = document.getElementById('saved-user-data');
-        const displayAge = document.getElementById('display-age');
-        const displayTeam = document.getElementById('display-team');
-        const displayCarModel = document.getElementById('display-car-model'); // Yeni: Araba Modeli gösterimi
-
-        // Google ile Oturum Açma Fonksiyonu
-        googleSignInButton.addEventListener('click', async () => {
-            try {
-                const result = await auth.signInWithPopup(googleProvider);
-                // UI, onAuthStateChanged tarafından güncellenecek
-            } catch (error) {
-                console.error("Google ile oturum açma hatası:", error);
-                alert("Oturum açma sırasında bir hata oluştu: " + error.message);
-            }
-        });
-
-        // Oturumu Kapatma Fonksiyonu
-        signOutButton.addEventListener('click', async () => {
-            try {
-                await auth.signOut();
-                // UI, onAuthStateChanged tarafından güncellenecek
-            } catch (error) {
-                console.error("Oturumu kapatma hatası:", error);
-                alert("Oturumu kapatma sırasında bir hata oluştu: " + error.message);
-            }
-        });
-
-        // Kullanıcı Verilerini Kaydetme Fonksiyonu
-        saveUserDataButton.addEventListener('click', async () => {
-            const user = auth.currentUser;
-            if (user) {
-                const age = userAgeInput.value ? parseInt(userAgeInput.value) : null;
-                const team = userTeamInput.value.trim();
-                const carModel = userCarModelInput.value.trim(); // Yeni: Araba Modeli verisi alındı
-
-                try {
-                    await db.collection("users").doc(user.uid).set({
-                        age: age,
-                        team: team,
-                        carModel: carModel, // Yeni: Araba Modeli Firestore'a gönderildi
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true }); // Mevcut alanları koruyarak sadece verilenleri günceller
-
-                    alert("Bilgileriniz başarıyla kaydedildi!");
-                    loadUserData(user.uid); // Kaydedildikten sonra verileri tekrar yükle
-                } catch (error) {
-                    console.error("Kullanıcı verilerini kaydetme hatası:", error);
-                    alert("Bilgileri kaydederken bir hata oluştu: " + error.message);
-                }
-            } else {
-                alert("Lütfen önce oturum açın.");
-            }
-        });
-
-        // Kullanıcı Verilerini Yükleme Fonksiyonu
-        async function loadUserData(uid) {
-            try {
-                const doc = await db.collection("users").doc(uid).get();
-                if (doc.exists) {
-                    const data = doc.data();
-                    displayAge.textContent = data.age || 'N/A';
-                    displayTeam.textContent = data.team || 'N/A';
-                    displayCarModel.textContent = data.carModel || 'N/A'; // Yeni: Araba Modeli gösterildi
-
-                    userAgeInput.value = data.age || ''; // Input alanlarını da güncelleyelim
-                    userTeamInput.value = data.team || '';
-                    userCarModelInput.value = data.carModel || ''; // Yeni: Araba Modeli inputu güncellendi
-
-                    savedUserDataDiv.style.display = 'block';
-                } else {
-                    displayAge.textContent = 'Henüz kaydedilmemiş';
-                    displayTeam.textContent = 'Henüz kaydedilmemiş';
-                    displayCarModel.textContent = 'Henüz kaydedilmemiş'; // Yeni: Araba Modeli için de
-                    userAgeInput.value = '';
-                    userTeamInput.value = '';
-                    userCarModelInput.value = '';
-                    savedUserDataDiv.style.display = 'block';
-                }
-            } catch (error) {
-                console.error("Kullanıcı verilerini yükleme hatası:", error);
-                alert("Bilgileri yüklerken bir hata oluştu: " + error.message);
-            }
-        }
-
-        // Kimlik Doğrulama Durumu Değişikliklerini Dinle
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                // Kullanıcı oturum açmış
-                googleSignInButton.style.display = 'none';
-                signOutButton.style.display = 'inline-block';
-                userInfoDiv.style.display = 'block';
-                userDataForm.style.display = 'block'; // Formu göster
-
-                userDisplayName.textContent = user.displayName;
-                userEmail.textContent = user.email;
-                userUid.textContent = user.uid;
-
-                if (user.photoURL) {
-                    userPhoto.src = user.photoURL;
-                    userPhoto.style.display = 'inline-block';
-                } else {
-                    userPhoto.style.display = 'none';
-                }
-
-                loadUserData(user.uid); // Oturum açınca kullanıcının verilerini yükle
-                console.log("Kullanıcı durumu: Oturum açık", user);
-            } else {
-                // Kullanıcı oturum kapatmış
-                googleSignInButton.style.display = 'inline-block';
-                signOutButton.style.display = 'none';
-                userInfoDiv.style.display = 'none';
-                userDataForm.style.display = 'none'; // Formu gizle
-                savedUserDataDiv.style.display = 'none'; // Kaydedilen verileri gizle
-
-                userDisplayName.textContent = '';
-                userEmail.textContent = '';
-                userUid.textContent = '';
-                userPhoto.src = '';
-                userPhoto.style.display = 'none';
-
-                userAgeInput.value = '';
-                userTeamInput.value = '';
-                userCarModelInput.value = ''; // Yeni: Araba Modeli inputu temizlendi
-                displayAge.textContent = '';
-                displayTeam.textContent = '';
-                displayCarModel.textContent = ''; // Yeni: Araba Modeli gösterimi temizlendi
-
-                console.log("Kullanıcı durumu: Oturum kapalı");
-            }
-        });
+        listenUserDevices(user.uid);
+    } else {
+        googleSignInButton.style.display = 'inline-block';
+        signOutButton.style.display = 'none';
+        userInfoDiv.style.display = 'none';
+        userDataForm.style.display = 'none';
+        deviceManagementDiv.style.display = 'none';
+        deviceListDiv.innerHTML = "";
+    }
+});
     </script>
 </body>
 </html>
