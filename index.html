@@ -189,6 +189,65 @@ addDeviceButton.addEventListener('click', async () => {
     }
 });
 
+// --- KULLANICI VERİLERİNİ (YAŞ, TAKIM, ARABA) KAYDETME ---
+const saveUserDataButton = document.getElementById('save-user-data-button');
+const userAgeInput = document.getElementById('user-age');
+const userTeamInput = document.getElementById('user-team');
+const userCarModelInput = document.getElementById('user-car-model');
+
+saveUserDataButton.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if (user) {
+        const age = userAgeInput.value ? parseInt(userAgeInput.value) : null;
+        const team = userTeamInput.value.trim();
+        const carModel = userCarModelInput.value.trim();
+
+        try {
+            await db.collection("users").doc(user.uid).set({
+                age: age,
+                team: team,
+                carModel: carModel,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            alert("Kişisel bilgileriniz başarıyla kaydedildi!");
+            // Bilgileri ekranda güncellemek için tekrar yükle
+            loadUserData(user.uid);
+        } catch (error) {
+            console.error("Veri kaydetme hatası:", error);
+            alert("Bilgileri kaydederken bir hata oluştu: " + error.message);
+        }
+    } else {
+        alert("Lütfen önce oturum açın.");
+    }
+});
+
+// Verileri Firestore'dan çekip ekrana yazdıran fonksiyon
+async function loadUserData(uid) {
+    try {
+        const doc = await db.collection("users").doc(uid).get();
+        const displayAge = document.getElementById('display-age');
+        const displayTeam = document.getElementById('display-team');
+        const displayCarModel = document.getElementById('display-car-model');
+
+        if (doc.exists) {
+            const data = doc.data();
+            displayAge.textContent = data.age || 'N/A';
+            displayTeam.textContent = data.team || 'N/A';
+            displayCarModel.textContent = data.carModel || 'N/A';
+
+            // Input kutularını da doldur
+            userAgeInput.value = data.age || '';
+            userTeamInput.value = data.team || '';
+            userCarModelInput.value = data.carModel || '';
+            
+            savedUserDataDiv.style.display = 'block';
+        }
+    } catch (error) {
+        console.error("Veri yükleme hatası:", error);
+    }
+}
+
 function listenUserDevices(uid) {
     db.collection("devices").where("ownerUid", "==", uid)
     .onSnapshot((snapshot) => {
