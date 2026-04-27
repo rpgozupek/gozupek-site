@@ -226,22 +226,35 @@ saveUserDataButton.addEventListener('click', async () => {
 async function loadUserData(uid) {
     try {
         const doc = await db.collection("users").doc(uid).get();
+        
+        // Elementleri burada tekrar tanımlayalım ki hata payı kalmasın
+        const ageInput = document.getElementById('user-age');
+        const teamInput = document.getElementById('user-team');
+        const carInput = document.getElementById('user-car-model');
         const displayAge = document.getElementById('display-age');
         const displayTeam = document.getElementById('display-team');
-        const displayCarModel = document.getElementById('display-car-model');
+        const displayCar = document.getElementById('display-car-model');
+        const savedDataDiv = document.getElementById('saved-user-data');
 
         if (doc.exists) {
             const data = doc.data();
-            displayAge.textContent = data.age || 'N/A';
-            displayTeam.textContent = data.team || 'N/A';
-            displayCarModel.textContent = data.carModel || 'N/A';
-
-            // Input kutularını da doldur
-            userAgeInput.value = data.age || '';
-            userTeamInput.value = data.team || '';
-            userCarModelInput.value = data.carModel || '';
             
-            savedUserDataDiv.style.display = 'block';
+            // Input kutularını doldur
+            if(ageInput) ageInput.value = data.age || '';
+            if(teamInput) teamInput.value = data.team || '';
+            if(carInput) carInput.value = data.carModel || '';
+
+            // Alt taraftaki "Kaydedilmiş Bilgileriniz" kısmını doldur
+            if(displayAge) displayAge.textContent = data.age || 'N/A';
+            if(displayTeam) displayTeam.textContent = data.team || 'N/A';
+            if(displayCar) displayCar.textContent = data.carModel || 'N/A';
+
+            // Bilgi alanı gizliyse göster
+            if(savedDataDiv) savedDataDiv.style.display = 'block';
+            
+            console.log("Kullanıcı verileri başarıyla yüklendi:", data);
+        } else {
+            console.log("Kullanıcıya ait kayıtlı döküman bulunamadı.");
         }
     } catch (error) {
         console.error("Veri yükleme hatası:", error);
