@@ -19,8 +19,8 @@
 // =====================================================
 //  KONFIGURASYON
 // =====================================================
-const char* WIFI_SSID     = "WIFI_ADINIZI_GIRIN";
-const char* WIFI_PASSWORD = "WIFI_SIFRENIZI_GIRIN";
+const char* WIFI_SSID     = "RKTurknet";
+const char* WIFI_PASSWORD = "22122018";
 
 const char* FIREBASE_API_KEY    = "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE";
 const char* FIREBASE_PROJECT_ID = "website-gozupekteknoloji";
@@ -277,9 +277,9 @@ void setup() {
     // Firestore kayit
     registerInFirestore(serialCode);
 
-    // RTDB online isaretini yaz
-    Serial.println("[RTDB] Cihaz cevrimici olarak isaretleniyor...");
-    rtdbPut("/devices/" + serialCode + "/online", "true");
+    // RTDB lastSeen yaz -- sunucu zamani ile
+    Serial.println("[RTDB] lastSeen yaziliyor...");
+    rtdbPut("/devices/" + serialCode + "/lastSeen", "{\".sv\":\"timestamp\"}");
     lastHeartbeat = millis();
 
     // SSE baglantisi
@@ -312,8 +312,7 @@ void loop() {
         delay(2000);
         sseConnected = connectSSE();
         if (sseConnected) {
-            // Yeniden baglaninca online bildir
-            rtdbPut("/devices/" + serialCode + "/online", "true");
+            rtdbPut("/devices/" + serialCode + "/lastSeen", "{\".sv\":\"timestamp\"}");
             lastHeartbeat = millis();
         }
         return;
@@ -322,9 +321,9 @@ void loop() {
     // SSE oku (bloklamaz, sadece veri varsa okur)
     readSSE();
 
-    // Heartbeat -- online durumunu taze tut
+    // Heartbeat -- lastSeen'i taze tut
     if (millis() - lastHeartbeat >= HEARTBEAT_INTERVAL) {
         lastHeartbeat = millis();
-        rtdbPut("/devices/" + serialCode + "/online", "true");
+        rtdbPut("/devices/" + serialCode + "/lastSeen", "{\".sv\":\"timestamp\"}");
     }
 }

@@ -290,8 +290,34 @@ async function loadUserData(uid) {
     }
 }
 
-// Aktif RTDB dinleyicilerini takip et (bellek sızıntısı olmasın)
+// Aktif RTDB dinleyicilerini ve lastSeen değerlerini takip et
 const rtdbListeners = {};
+const lastSeenMap   = {};  // { deviceId: timestampMs }
+const OFFLINE_THRESHOLD = 60000; // 60 sn haber yoksa çevrimdışı
+
+// lastSeen'e göre badge güncelle
+function updateOnlineBadge(id) {
+    const el = document.getElementById('status-' + id);
+    if (!el) return;
+    const ls = lastSeenMap[id] || 0;
+    const diff = Date.now() - ls;
+    if (ls === 0) {
+        el.textContent = '⚫ Hiç bağlanmadı';
+        el.style.color = '#aaa';
+    } else if (diff < OFFLINE_THRESHOLD) {
+        el.textContent = '🟢 Çevrimiçi';
+        el.style.color = '#28a745';
+    } else {
+        const sn = Math.floor(diff / 1000);
+        el.textContent = `🔴 Çevrimdışı (${sn}sn önce görüldü)`;
+        el.style.color = '#ea4335';
+    }
+}
+
+// Her 15 sn'de tüm kartların online badge'ini güncelle
+setInterval(() => {
+    Object.keys(lastSeenMap).forEach(updateOnlineBadge);
+}, 15000);
 
 function listenUserDevices(uid) {
     db.collection("devices").where("ownerUid", "==", uid)
@@ -301,6 +327,7 @@ function listenUserDevices(uid) {
         Object.keys(rtdbListeners).forEach(id => {
             rtdb.ref('devices/' + id).off('value', rtdbListeners[id]);
             delete rtdbListeners[id];
+            delete lastSeenMap[id];
         });
 
         deviceListDiv.innerHTML = "";
@@ -335,21 +362,20 @@ function listenUserDevices(uid) {
             `;
             deviceListDiv.appendChild(card);
 
-            // RTDB'yi anlık dinle — cihaz durumu değişince kart güncellenir
+            // RTDB anlık dinle
             const listener = rtdb.ref('devices/' + id).on('value', (snap) => {
-                const state   = snap.val() || {};
-                const command = state.command === true;
-                const online  = state.online  === true;
+                const state    = snap.val() || {};
+                const command  = state.command  === true;
+                const lastSeen = state.lastSeen || 0;
 
-                const btn    = document.getElementById('btn-' + id);
-                const status = document.getElementById('status-' + id);
+                // lastSeen'i kaydet ve badge'i güncelle
+                lastSeenMap[id] = lastSeen;
+                updateOnlineBadge(id);
 
+                const btn = document.getElementById('btn-' + id);
                 if (btn) {
-                    btn.textContent   = command ? 'AÇIK' : 'KAPALI';
+                    btn.textContent      = command ? 'AÇIK' : 'KAPALI';
                     btn.style.background = command ? '#28a745' : '#ea4335';
-                }
-                if (status) {
-                    status.textContent = online ? '🟢 Çevrimiçi' : '🔴 Çevrimdışı';
                 }
             });
 
