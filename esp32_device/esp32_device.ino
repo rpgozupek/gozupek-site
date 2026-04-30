@@ -47,8 +47,8 @@ String sseData     = "";
 // ------------------------------------------------------------------
 String generateSerialCode() {
     const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    String code = "ESP-";
-    for (int i = 0; i < 6; i++) code += chars[random(0, 36)];
+    String code = "GZP-";
+    for (int i = 0; i < 10; i++) code += chars[random(0, 36)];
     return code;
 }
 
@@ -63,46 +63,40 @@ String firestoreUrl(const String& id) {
 }
 
 // ------------------------------------------------------------------
-// Firestore'a cihaz kaydet (sahiplik verisi burada tutuluyor)
+// Firestore'da cihaz kayitli mi kontrol et
+// 200 → kayitli, devam et
+// 404 → kayitli degil, baglantıyı reddet
+// diger → ag hatası
 // ------------------------------------------------------------------
-bool registerInFirestore(const String& deviceId) {
-    Serial.println("[Firestore] Kayit kontrol ediliyor...");
+bool checkDeviceInFirestore(const String& deviceId) {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient http;
 
     http.begin(client, firestoreUrl(deviceId));
     int code = http.GET();
-    Serial.printf("[Firestore] HTTP %d\n", code);
 
     if (code == 200) {
         String body = http.getString();
         http.end();
         Serial.println(body.indexOf("ownerUid") >= 0
-            ? "[Firestore] Cihaz bir hesaba bagli."
-            : "[Firestore] Cihaz kayitli, henuz sahipsiz.");
+            ? "[Firestore] Cihaz bir hesaba bagli. Hazir."
+            : "[Firestore] Cihaz dogrulandi, henuz sahipsiz.");
         return true;
     }
+
     http.end();
 
     if (code == 404) {
-        Serial.println("[Firestore] Ilk kayit yapiliyor...");
-        String payload = "{\"fields\":{"
-            "\"serialCode\":{\"stringValue\":\"" + deviceId + "\"},"
-            "\"status\":{\"booleanValue\":false},"
-            "\"claimed\":{\"booleanValue\":false}}}";
-
-        WiFiClientSecure c2; c2.setInsecure();
-        HTTPClient h2;
-        h2.begin(c2, firestoreUrl(deviceId));
-        h2.addHeader("Content-Type", "application/json");
-        int pc = h2.PATCH(payload);
-        h2.end();
-        Serial.printf("[Firestore] PATCH HTTP %d\n", pc);
-        return pc == 200 || pc == 201;
+        Serial.println("[Firestore] Bu cihaz veritabaninda tanimli degil!");
+        Serial.println("[Firestore] Lutfen asagidaki kodu Firestore'a ekleyin:");
+        Serial.println("  Koleksiyon : devices");
+        Serial.println("  Belge ID   : " + deviceId);
+        Serial.println("  Alanlar    : claimed=false, status=false");
+        return false;
     }
 
-    Serial.printf("[Firestore] Beklenmedik HTTP: %d\n", code);
+    Serial.printf("[Firestore] Ag hatasi (HTTP %d), tekrar deneniyor...\n", code);
     return false;
 }
 
@@ -279,8 +273,12 @@ void setup() {
     }
     Serial.printf("\nWiFi baglandi. IP: %s\n\n", WiFi.localIP().toString().c_str());
 
-    // Firestore kayit
-    registerInFirestore(serialCode);
+    // Firestore dogrulama -- kayitli degilse baglantıyı reddet
+    Serial.println("[Firestore] Cihaz dogrulaniyor...");
+    while (!checkDeviceInFirestore(serialCode)) {
+        Serial.println("30 saniye sonra tekrar deneniyor...\n");
+        delay(30000);
+    }
 
     // RTDB lastSeen yaz -- sunucu zamani ile
     Serial.println("[RTDB] lastSeen yaziliyor...");
