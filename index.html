@@ -365,17 +365,35 @@ function listenUserDevices(uid) {
             // RTDB anlık dinle
             const listener = rtdb.ref('devices/' + id).on('value', (snap) => {
                 const state    = snap.val() || {};
-                const command  = state.command  === true;
                 const lastSeen = state.lastSeen || 0;
 
-                // lastSeen'i kaydet ve badge'i güncelle
+                // lastSeen güncelle
                 lastSeenMap[id] = lastSeen;
                 updateOnlineBadge(id);
 
-                const btn = document.getElementById('btn-' + id);
-                if (btn) {
-                    btn.textContent      = command ? 'AÇIK' : 'KAPALI';
-                    btn.style.background = command ? '#28a745' : '#ea4335';
+                // Butonu status'a göre güncelle (command değil!)
+                // status: ESP32'nin onayladığı gerçek durum
+                if ('status' in (state || {})) {
+                    const status = state.status === true;
+                    const btn = document.getElementById('btn-' + id);
+                    if (btn && !btn.dataset.pending) {
+                        btn.textContent      = status ? 'AÇIK' : 'KAPALI';
+                        btn.style.background = status ? '#28a745' : '#ea4335';
+                        btn.disabled         = false;
+                    } else if (btn && btn.dataset.pending) {
+                        // Beklenen onay geldi mi kontrol et
+                        if (String(status) === btn.dataset.pending) {
+                            btn.textContent      = status ? 'AÇIK' : 'KAPALI';
+                            btn.style.background = status ? '#28a745' : '#ea4335';
+                            btn.disabled         = false;
+                            delete btn.dataset.pending;
+                            // Timeout varsa iptal et
+                            if (pendingTimeouts[id]) {
+                                clearTimeout(pendingTimeouts[id]);
+                                delete pendingTimeouts[id];
+                            }
+                        }
+                    }
                 }
             });
 
@@ -387,13 +405,43 @@ function listenUserDevices(uid) {
     });
 }
 
+const pendingTimeouts = {};
+
 window.toggleDevice = async (id) => {
+    const btn = document.getElementById('btn-' + id);
+    if (!btn || btn.disabled) return; // Zaten bekleniyorsa tıklamayı yoksay
+
     try {
         const snap    = await rtdb.ref('devices/' + id + '/command').once('value');
         const current = snap.val() === true;
-        await rtdb.ref('devices/' + id + '/command').set(!current);
+        const next    = !current;
+
+        // Butonu "bekleniyor" moduna al
+        btn.disabled         = true;
+        btn.textContent      = '⏳ Bekleniyor...';
+        btn.style.background = '#f0a500';
+        btn.dataset.pending  = String(next); // Beklediğimiz onay değeri
+
+        // Komutu gönder
+        await rtdb.ref('devices/' + id + '/command').set(next);
+
+        // 6 saniye içinde onay gelmezse zaman aşımı
+        pendingTimeouts[id] = setTimeout(() => {
+            if (btn.dataset.pending) {
+                btn.textContent      = '⚠️ Yanıt yok';
+                btn.style.background = '#dc3545';
+                btn.disabled         = false;
+                delete btn.dataset.pending;
+            }
+        }, 6000);
+
     } catch (error) {
-        alert("Durum güncellenemedi: " + error.message);
+        if (btn) {
+            btn.disabled         = false;
+            btn.style.background = '#ea4335';
+            btn.textContent      = 'Hata';
+        }
+        alert("Komut gönderilemedi: " + error.message);
     }
 };
 

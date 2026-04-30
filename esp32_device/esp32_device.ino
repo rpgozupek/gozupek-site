@@ -186,12 +186,17 @@ void processSSEEvent(const String& event, const String& data) {
     if (newCommand != lastCommand) {
         lastCommand = newCommand;
         Serial.println("==================================");
-        Serial.print(">>> KOMUT: ");
+        Serial.print(">>> KOMUT ALINDI: ");
         Serial.println(newCommand ? "ACIK" : "KAPALI");
         Serial.println("==================================");
 
         // Buraya role veya cikis kodu ekle:
         // digitalWrite(RELAY_PIN, newCommand ? HIGH : LOW);
+
+        // Komutu gerceklestirdigimizi websiteye onayla (status = command)
+        bool yazildi = rtdbPut("/devices/" + serialCode + "/status",
+                               newCommand ? "true" : "false");
+        Serial.println(yazildi ? "[RTDB] Onay gonderildi." : "[RTDB] Onay gonderilemedi!");
     }
 }
 
