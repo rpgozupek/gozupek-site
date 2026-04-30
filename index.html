@@ -118,6 +118,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
     <script>
         // 1. Firebase Yapılandırması (Senin mevcut config bilgilerin)
@@ -137,7 +138,8 @@ if (!firebase.apps.length) {
 }
 
 const auth = firebase.auth();
-const db = firebase.firestore();
+const db   = firebase.firestore();
+const rtdb = firebase.database();
 
 // 3. HTML Element Referansları
 const googleSignInButton = document.getElementById('google-signin-button');
@@ -288,27 +290,43 @@ async function loadUserData(uid) {
     }
 }
 
+// Aktif RTDB dinleyicilerini takip et (bellek sızıntısı olmasın)
+const rtdbListeners = {};
+
 function listenUserDevices(uid) {
     db.collection("devices").where("ownerUid", "==", uid)
     .onSnapshot((snapshot) => {
+
+        // Eski RTDB dinleyicilerini temizle
+        Object.keys(rtdbListeners).forEach(id => {
+            rtdb.ref('devices/' + id).off('value', rtdbListeners[id]);
+            delete rtdbListeners[id];
+        });
+
         deviceListDiv.innerHTML = "";
+
         if (snapshot.empty) {
             deviceListDiv.innerHTML = "<p>Henüz kayıtlı bir cihazınız yok.</p>";
             return;
         }
+
         snapshot.forEach((doc) => {
             const device = doc.data();
             const id = doc.id;
+
+            // Kart oluştur
             const card = document.createElement('div');
+            card.id = 'card-' + id;
             card.style = "background:#fff; border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:5px; display:flex; justify-content:space-between; align-items:center; gap:8px;";
             card.innerHTML = `
                 <div style="flex:1;">
                     <strong>${device.deviceName}</strong><br>
-                    <small style="color:#888;">Seri No: ${id}</small>
+                    <small style="color:#888;">Seri No: ${id}</small><br>
+                    <small id="status-${id}" style="color:#aaa;">Bağlanıyor...</small>
                 </div>
-                <button onclick="toggleDevice('${id}', ${device.status})"
-                        style="background:${device.status ? '#28a745' : '#ea4335'}; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px; min-width:80px;">
-                    ${device.status ? 'AÇIK' : 'KAPALI'}
+                <button id="btn-${id}" onclick="toggleDevice('${id}')"
+                        style="background:#aaa; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px; min-width:80px;">
+                    ...
                 </button>
                 <button onclick="removeDevice('${id}')"
                         style="background:#6c757d; color:white; border:none; padding:8px 12px; cursor:pointer; border-radius:4px;">
@@ -316,18 +334,38 @@ function listenUserDevices(uid) {
                 </button>
             `;
             deviceListDiv.appendChild(card);
+
+            // RTDB'yi anlık dinle — cihaz durumu değişince kart güncellenir
+            const listener = rtdb.ref('devices/' + id).on('value', (snap) => {
+                const state   = snap.val() || {};
+                const command = state.command === true;
+                const online  = state.online  === true;
+
+                const btn    = document.getElementById('btn-' + id);
+                const status = document.getElementById('status-' + id);
+
+                if (btn) {
+                    btn.textContent   = command ? 'AÇIK' : 'KAPALI';
+                    btn.style.background = command ? '#28a745' : '#ea4335';
+                }
+                if (status) {
+                    status.textContent = online ? '🟢 Çevrimiçi' : '🔴 Çevrimdışı';
+                }
+            });
+
+            rtdbListeners[id] = listener;
         });
+
     }, (error) => {
         console.error("Dinleme hatası:", error);
     });
 }
 
-window.toggleDevice = async (id, currentStatus) => {
+window.toggleDevice = async (id) => {
     try {
-        await db.collection("devices").doc(id).update({
-            status: !currentStatus,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        const snap    = await rtdb.ref('devices/' + id + '/command').once('value');
+        const current = snap.val() === true;
+        await rtdb.ref('devices/' + id + '/command').set(!current);
     } catch (error) {
         alert("Durum güncellenemedi: " + error.message);
     }
