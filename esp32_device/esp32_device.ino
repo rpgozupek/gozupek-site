@@ -240,10 +240,13 @@ void setup() {
     Serial.println("  ESP32 IoT Cihaz  v2");
     Serial.println("=============================");
 
-    // Seri kodu NVS'den oku veya uret
+    // Seri kodu NVS'den oku -- GZP- ile baslıyorsa kullan, degilse yenile
     prefs.begin("device", false);
     serialCode = prefs.getString("serial_code", "");
-    if (serialCode.isEmpty()) {
+    if (serialCode.isEmpty() || !serialCode.startsWith("GZP-")) {
+        if (!serialCode.isEmpty()) {
+            Serial.println("Eski format kodu temizleniyor: " + serialCode);
+        }
         randomSeed(esp_random());
         serialCode = generateSerialCode();
         prefs.putString("serial_code", serialCode);
