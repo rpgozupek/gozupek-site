@@ -62,7 +62,7 @@
 <body>
     <div class="container">
         <h1>Firebaseee</h1>
-        <div id="brand-title">GÖZÜPEK</div>
+        <div id="brand-title">GÖZÜPEK t</div>
 
         <div id="auth-container">
             <button id="google-signin-button">Google ile Oturum Aç</button>
@@ -317,6 +317,7 @@ auth.onAuthStateChanged((user) => {
         document.getElementById('user-uid').textContent = user.uid;
 
         listenUserDevices(user.uid);
+        loadUserData(user.uid);
     } else {
         document.getElementById('brand-title').style.display = 'none';
         googleSignInButton.style.display = 'inline-block';
