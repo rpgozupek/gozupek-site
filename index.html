@@ -62,7 +62,7 @@
 <body>
     <div class="container">
         <h1>Firebaseee</h1>
-        <div id="brand-title">GÖZÜPEK</div>
+        <div id="brand-title">GÖZÜPEK t</div>
 
         <div id="auth-container">
             <button id="google-signin-button">Google ile Oturum Aç</button>
@@ -95,7 +95,7 @@
             <h2>Cihazlarım</h2>
     
             <div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
-            <input type="text" id="new-device-id" placeholder="Cihaz Seri No (ID)">
+            <input type="text" id="new-device-id" placeholder="Seri Kodu (Örn: ESP-A3F2B1)" style="text-transform:uppercase;">
             <input type="text" id="new-device-name" placeholder="Cihaz Adı (Örn: Salon)">
             <button id="add-device-button" style="background-color: #007bff; color: white; border: none;">Cihaz Ekle</button>
     </div>
@@ -168,26 +168,51 @@ signOutButton.addEventListener('click', () => {
 // 5. CİHAZ YÖNETİMİ
 addDeviceButton.addEventListener('click', async () => {
     const user = auth.currentUser;
-    const deviceId = newDeviceIdInput.value.trim();
+    const deviceId = newDeviceIdInput.value.trim().toUpperCase();
     const deviceName = newDeviceNameInput.value.trim();
 
-    if (user && deviceId && deviceName) {
-        try {
-            await db.collection("devices").doc(deviceId).set({
-                ownerUid: user.uid,
-                deviceName: deviceName,
-                status: false,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-            
-            alert("Cihaz başarıyla eklendi!");
-            newDeviceIdInput.value = "";
-            newDeviceNameInput.value = "";
-        } catch (error) {
-            alert("Cihaz ekleme hatası: " + error.message);
-        }
-    } else {
+    if (!user || !deviceId || !deviceName) {
         alert("Lütfen tüm alanları doldurun.");
+        return;
+    }
+
+    try {
+        addDeviceButton.disabled = true;
+        addDeviceButton.textContent = "Kontrol ediliyor...";
+
+        const docRef = db.collection("devices").doc(deviceId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            alert("Bu seri koda sahip bir cihaz bulunamadı.\nLütfen ESP32'nin açık olduğundan ve seri kodunu doğru girdiğinizden emin olun.");
+            return;
+        }
+
+        const data = docSnap.data();
+        if (data.ownerUid) {
+            if (data.ownerUid === user.uid) {
+                alert("Bu cihaz zaten sizin hesabınıza kayıtlı.");
+            } else {
+                alert("Bu cihaz başka bir hesaba kayıtlı. Farklı bir seri kod deneyin.");
+            }
+            return;
+        }
+
+        await docRef.update({
+            ownerUid: user.uid,
+            deviceName: deviceName,
+            claimed: true,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert(`"${deviceName}" cihazı başarıyla eklendi!`);
+        newDeviceIdInput.value = "";
+        newDeviceNameInput.value = "";
+    } catch (error) {
+        alert("Cihaz ekleme hatası: " + error.message);
+    } finally {
+        addDeviceButton.disabled = false;
+        addDeviceButton.textContent = "Cihaz Ekle";
     }
 });
 
@@ -266,7 +291,7 @@ async function loadUserData(uid) {
 function listenUserDevices(uid) {
     db.collection("devices").where("ownerUid", "==", uid)
     .onSnapshot((snapshot) => {
-        deviceListDiv.innerHTML = ""; 
+        deviceListDiv.innerHTML = "";
         if (snapshot.empty) {
             deviceListDiv.innerHTML = "<p>Henüz kayıtlı bir cihazınız yok.</p>";
             return;
@@ -275,12 +300,19 @@ function listenUserDevices(uid) {
             const device = doc.data();
             const id = doc.id;
             const card = document.createElement('div');
-            card.style = "background:#fff; border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;";
+            card.style = "background:#fff; border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:5px; display:flex; justify-content:space-between; align-items:center; gap:8px;";
             card.innerHTML = `
-                <div><strong>${device.deviceName}</strong><br><small>ID: ${id}</small></div>
-                <button onclick="toggleDevice('${id}', ${device.status})" 
-                        style="background:${device.status ? '#28a745' : '#ea4335'}; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px;">
+                <div style="flex:1;">
+                    <strong>${device.deviceName}</strong><br>
+                    <small style="color:#888;">Seri No: ${id}</small>
+                </div>
+                <button onclick="toggleDevice('${id}', ${device.status})"
+                        style="background:${device.status ? '#28a745' : '#ea4335'}; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px; min-width:80px;">
                     ${device.status ? 'AÇIK' : 'KAPALI'}
+                </button>
+                <button onclick="removeDevice('${id}')"
+                        style="background:#6c757d; color:white; border:none; padding:8px 12px; cursor:pointer; border-radius:4px;">
+                    Sil
                 </button>
             `;
             deviceListDiv.appendChild(card);
@@ -298,6 +330,21 @@ window.toggleDevice = async (id, currentStatus) => {
         });
     } catch (error) {
         alert("Durum güncellenemedi: " + error.message);
+    }
+};
+
+window.removeDevice = async (id) => {
+    if (!confirm(`"${id}" seri kodlu cihazı hesabınızdan kaldırmak istiyor musunuz?`)) return;
+    try {
+        await db.collection("devices").doc(id).update({
+            ownerUid: firebase.firestore.FieldValue.delete(),
+            deviceName: firebase.firestore.FieldValue.delete(),
+            claimed: false,
+            status: false,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (error) {
+        alert("Cihaz kaldırılamadı: " + error.message);
     }
 };
 
