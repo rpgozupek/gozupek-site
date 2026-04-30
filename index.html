@@ -295,11 +295,32 @@ const rtdbListeners = {};
 const lastSeenMap   = {};  // { deviceId: timestampMs }
 const OFFLINE_THRESHOLD = 15000; // 15 sn haber yoksa çevrimdışı
 
+// Geçen süreyi okunabilir formata çevir
+function formatElapsed(ms) {
+    const sn  = Math.floor(ms / 1000);
+    const dk  = Math.floor(sn / 60);
+    const sa  = Math.floor(dk / 60);
+    const gun = Math.floor(sa / 24);
+
+    if (sn < 60)  return `${sn} sn`;
+    if (dk < 60)  return `${dk} dk`;
+    if (sa < 24) {
+        const kalanDk = dk % 60;
+        return kalanDk > 0 ? `${sa} saat ${kalanDk} dk` : `${sa} saat`;
+    }
+    const kalanSa = sa % 24;
+    const kalanDk = dk % 60;
+    let s = `${gun} gün`;
+    if (kalanSa > 0) s += ` ${kalanSa} saat`;
+    if (kalanDk > 0) s += ` ${kalanDk} dk`;
+    return s;
+}
+
 // lastSeen'e göre badge güncelle
 function updateOnlineBadge(id) {
     const el = document.getElementById('status-' + id);
     if (!el) return;
-    const ls = lastSeenMap[id] || 0;
+    const ls   = lastSeenMap[id] || 0;
     const diff = Date.now() - ls;
     if (ls === 0) {
         el.textContent = '⚫ Hiç bağlanmadı';
@@ -308,8 +329,7 @@ function updateOnlineBadge(id) {
         el.textContent = '🟢 Çevrimiçi';
         el.style.color = '#28a745';
     } else {
-        const sn = Math.floor(diff / 1000);
-        el.textContent = `🔴 Çevrimdışı (${sn}sn önce görüldü)`;
+        el.textContent = `🔴 Çevrimdışı (${formatElapsed(diff)} önce görüldü)`;
         el.style.color = '#ea4335';
     }
 }
