@@ -61,7 +61,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Firebase</h1>
+        <h1>Firebaseee</h1>
         <div id="brand-title">GÖZÜPEK</div>
 
         <div id="auth-container">
@@ -304,6 +304,7 @@ window.toggleDevice = async (id, currentStatus) => {
 // 6. DURUM KONTROLÜ
 auth.onAuthStateChanged((user) => {
     if (user) {
+        document.getElementById('brand-title').style.display = 'block';
         googleSignInButton.style.display = 'none';
         signOutButton.style.display = 'inline-block';
         userInfoDiv.style.display = 'block';
@@ -317,6 +318,7 @@ auth.onAuthStateChanged((user) => {
 
         listenUserDevices(user.uid);
     } else {
+        document.getElementById('brand-title').style.display = 'none';
         googleSignInButton.style.display = 'inline-block';
         signOutButton.style.display = 'none';
         userInfoDiv.style.display = 'none';
