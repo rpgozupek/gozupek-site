@@ -1,8 +1,10 @@
 /*
  * ESP32 Firebase IoT Cihaz
- * Gerekli kutuphaneler (Arduino Library Manager'dan yukle):
+ * v2 - RTDB SSE Streaming (polling yok, anlik komut alma)
+ *
+ * Gerekli kutuphaneler:
  *   - ArduinoJson  (Benoit Blanchon)
- *   - WiFiClientSecure (ESP32 core ile birlikte gelir)
+ *   - WiFiClientSecure, HTTPClient (ESP32 core ile gelir)
  */
 
 #include <Arduino.h>
@@ -11,35 +13,37 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
-#include "soc/soc.h"           // Brownout fix
-#include "soc/rtc_cntl_reg.h"  // Brownout fix
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 // =====================================================
-//  KONFIGURASYON -- buraya kendi bilgilerini gir
+//  KONFIGURASYON
 // =====================================================
-const char* WIFI_SSID     = "RKTurknet";
-const char* WIFI_PASSWORD = "22122018";
+const char* WIFI_SSID     = "WIFI_ADINIZI_GIRIN";
+const char* WIFI_PASSWORD = "WIFI_SIFRENIZI_GIRIN";
 
-const char* FIREBASE_API_KEY     = "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE";
-const char* FIREBASE_PROJECT_ID  = "website-gozupekteknoloji";
+const char* FIREBASE_API_KEY    = "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE";
+const char* FIREBASE_PROJECT_ID = "website-gozupekteknoloji";
+const char* RTDB_HOST           = "website-gozupekteknoloji-default-rtdb.firebaseio.com";
 // =====================================================
 
-Preferences prefs;
-String serialCode  = "";
-bool   lastStatus  = false;
-bool   deviceReady = false;
+Preferences      prefs;
+String           serialCode   = "";
+bool             lastCommand  = false;
+bool             sseConnected = false;
+unsigned long    lastHeartbeat = 0;
+const unsigned long HEARTBEAT_INTERVAL = 25000; // 25 sn -- online isaretini taze tut
 
-// Gecikmeyi azaltmak icin poll araligini 2 sn yaptik
-const unsigned long POLL_INTERVAL = 2000;
-unsigned long lastPollMs = 0;
+// SSE icin kalici baglanti
+WiFiClientSecure sseClient;
 
-// TLS istemcisini global tut -- her seferinde yeniden olusturmak
-// zaman alir (handshake ~1-2 sn). Boylece baglanti daha hizli.
-WiFiClientSecure tlsClient;
-HTTPClient       http;
+// SSE satirlarini biriktirmek icin tampon
+String sseBuffer   = "";
+String sseEvent    = "";
+String sseData     = "";
 
 // ------------------------------------------------------------------
-// 6 haneli rastgele seri kodu uret  (ornek: ESP-A3F2B1)
+// Seri kod uret
 // ------------------------------------------------------------------
 String generateSerialCode() {
     const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -49,108 +53,179 @@ String generateSerialCode() {
 }
 
 // ------------------------------------------------------------------
-// Firestore REST URL
+// Firestore URL
 // ------------------------------------------------------------------
-String firestoreUrl(const String& deviceId) {
+String firestoreUrl(const String& id) {
     return "https://firestore.googleapis.com/v1/projects/" +
            String(FIREBASE_PROJECT_ID) +
            "/databases/(default)/documents/devices/" +
-           deviceId + "?key=" + String(FIREBASE_API_KEY);
+           id + "?key=" + String(FIREBASE_API_KEY);
 }
 
 // ------------------------------------------------------------------
-// Cihazi Firestore'a kaydet
+// Firestore'a cihaz kaydet (sahiplik verisi burada tutuluyor)
 // ------------------------------------------------------------------
-bool registerDevice(const String& deviceId) {
-    Serial.println("[Kayit] Firestore kontrol ediliyor...");
+bool registerInFirestore(const String& deviceId) {
+    Serial.println("[Firestore] Kayit kontrol ediliyor...");
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient http;
 
-    http.begin(tlsClient, firestoreUrl(deviceId));
-    int getCode = http.GET();
+    http.begin(client, firestoreUrl(deviceId));
+    int code = http.GET();
+    Serial.printf("[Firestore] HTTP %d\n", code);
 
-    Serial.printf("[Kayit] GET yaniti: HTTP %d\n", getCode);
-
-    if (getCode == 200) {
-        // Belge var -- claimed mi kontrol et
+    if (code == 200) {
         String body = http.getString();
         http.end();
-
-        // ownerUid alaninin varligini kontrol et -- claimed field yerine
-        // ownerUid varsa cihaz bir hesaba bagli demektir
-        if (body.indexOf("ownerUid") >= 0) {
-            Serial.println("[Kayit] Bu cihaz bir hesaba bagli. Durum dinleniyor...");
-        } else {
-            Serial.println("[Kayit] Cihaz kayitli ama henuz sahipsiz. Website'den ekleyin.");
-        }
+        Serial.println(body.indexOf("ownerUid") >= 0
+            ? "[Firestore] Cihaz bir hesaba bagli."
+            : "[Firestore] Cihaz kayitli, henuz sahipsiz.");
         return true;
     }
-
     http.end();
 
-    if (getCode == 404) {
-        // Belge yok -- ilk kez kayit
-        Serial.println("[Kayit] Cihaz yok, ilk kayit yapiliyor...");
-
+    if (code == 404) {
+        Serial.println("[Firestore] Ilk kayit yapiliyor...");
         String payload = "{\"fields\":{"
             "\"serialCode\":{\"stringValue\":\"" + deviceId + "\"},"
             "\"status\":{\"booleanValue\":false},"
-            "\"claimed\":{\"booleanValue\":false}"
-            "}}";
+            "\"claimed\":{\"booleanValue\":false}}}";
 
-        http.begin(tlsClient, firestoreUrl(deviceId));
-        http.addHeader("Content-Type", "application/json");
-        int patchCode = http.PATCH(payload);
-        http.end();
-
-        Serial.printf("[Kayit] PATCH yaniti: HTTP %d\n", patchCode);
-
-        if (patchCode == 200 || patchCode == 201) {
-            Serial.println("[Kayit] Firebase kaydi basarili!");
-            return true;
-        }
-        Serial.printf("[Kayit] HATA: Kayit basarisiz (HTTP %d)\n", patchCode);
-        return false;
+        WiFiClientSecure c2; c2.setInsecure();
+        HTTPClient h2;
+        h2.begin(c2, firestoreUrl(deviceId));
+        h2.addHeader("Content-Type", "application/json");
+        int pc = h2.PATCH(payload);
+        h2.end();
+        Serial.printf("[Firestore] PATCH HTTP %d\n", pc);
+        return pc == 200 || pc == 201;
     }
 
-    // 403, 400 vs. -- kurallarda sorun olabilir
-    Serial.printf("[Kayit] Beklenmedik HTTP kodu: %d -- Firestore kurallari kontrol edilmeli\n", getCode);
+    Serial.printf("[Firestore] Beklenmedik HTTP: %d\n", code);
     return false;
 }
 
 // ------------------------------------------------------------------
-// Firestore'dan status oku, degisince Serial'a yaz
+// RTDB'ye deger yaz  (PUT)
 // ------------------------------------------------------------------
-void pollStatus(const String& deviceId) {
-    http.begin(tlsClient, firestoreUrl(deviceId));
-    int code = http.GET();
-
-    if (code != 200) {
-        Serial.printf("[Poll] HTTP hatasi: %d\n", code);
-        http.end();
-        return;
-    }
-
-    String body = http.getString();
+bool rtdbPut(const String& path, const String& value) {
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient http;
+    http.begin(client, "https://" + String(RTDB_HOST) + path + ".json");
+    http.addHeader("Content-Type", "application/json");
+    int code = http.PUT(value);
     http.end();
+    return code == 200;
+}
 
-    StaticJsonDocument<2048> doc;
-    DeserializationError err = deserializeJson(doc, body);
-    if (err) {
-        Serial.printf("[Poll] JSON parse hatasi: %s\n", err.c_str());
+// ------------------------------------------------------------------
+// SSE baglantisini kur
+// ------------------------------------------------------------------
+bool connectSSE() {
+    sseClient.stop();
+    sseClient.setInsecure();
+    sseBuffer = "";
+    sseEvent  = "";
+    sseData   = "";
+
+    String path = "/devices/" + serialCode + ".json";
+
+    Serial.println("[SSE] Sunucuya baglaniliyor...");
+    if (!sseClient.connect(RTDB_HOST, 443)) {
+        Serial.println("[SSE] Baglantı kurulamadi!");
+        return false;
+    }
+
+    // HTTP GET -- SSE headers
+    sseClient.print("GET " + path + " HTTP/1.1\r\n");
+    sseClient.print("Host: " + String(RTDB_HOST) + "\r\n");
+    sseClient.print("Accept: text/event-stream\r\n");
+    sseClient.print("Cache-Control: no-cache\r\n");
+    sseClient.print("Connection: keep-alive\r\n");
+    sseClient.print("\r\n");
+
+    // HTTP response header satirlarini oku ve atla
+    unsigned long t = millis();
+    while (sseClient.connected() && millis() - t < 5000) {
+        String line = sseClient.readStringUntil('\n');
+        if (line == "\r" || line.isEmpty()) break;
+    }
+
+    Serial.println("[SSE] Baglantı kuruldu! Komutlar aninda alinacak.");
+    return true;
+}
+
+// ------------------------------------------------------------------
+// Gelen SSE event'i isle
+// ------------------------------------------------------------------
+void processSSEEvent(const String& event, const String& data) {
+    if (event != "put" && event != "patch") return;
+    if (data.isEmpty() || data == "null")   return;
+
+    StaticJsonDocument<512> doc;
+    if (deserializeJson(doc, data)) {
+        Serial.println("[SSE] JSON parse hatasi");
         return;
     }
 
-    bool newStatus = doc["fields"]["status"]["booleanValue"] | false;
+    const char* path = doc["path"] | "/";
+    bool newCommand  = lastCommand;
 
-    if (newStatus != lastStatus) {
-        lastStatus = newStatus;
-        // Sadece ASCII karakterler kullaniyoruz -- bozuk yazi olmaz
+    if (strcmp(path, "/") == 0) {
+        // Ilk baglantiginda tam veri gelir
+        newCommand = doc["data"]["command"] | false;
+    } else if (strcmp(path, "/command") == 0) {
+        // Sadece command alani degisti
+        newCommand = doc["data"] | false;
+    } else {
+        return; // Baska bir alan degisti (online vs.), ilgilenmiyoruz
+    }
+
+    if (newCommand != lastCommand) {
+        lastCommand = newCommand;
         Serial.println("==================================");
-        Serial.print(">>> DURUM: ");
-        Serial.println(newStatus ? "ACIK" : "KAPALI");
+        Serial.print(">>> KOMUT: ");
+        Serial.println(newCommand ? "ACIK" : "KAPALI");
         Serial.println("==================================");
 
-        // Buraya role / LED kodu ekle:
-        // digitalWrite(RELAY_PIN, newStatus ? HIGH : LOW);
+        // Buraya role veya cikis kodu ekle:
+        // digitalWrite(RELAY_PIN, newCommand ? HIGH : LOW);
+    }
+}
+
+// ------------------------------------------------------------------
+// SSE stream'den gelen karakterleri satirlara bolup isle
+// ------------------------------------------------------------------
+void readSSE() {
+    if (!sseClient.connected()) {
+        sseConnected = false;
+        return;
+    }
+
+    while (sseClient.available()) {
+        char c = sseClient.read();
+
+        if (c == '\n') {
+            String line = sseBuffer;
+            sseBuffer = "";
+            line.trim();
+
+            if (line.startsWith("event:")) {
+                sseEvent = line.substring(6);
+                sseEvent.trim();
+            } else if (line.startsWith("data:")) {
+                sseData = line.substring(5);
+                sseData.trim();
+            } else if (line.isEmpty() && !sseEvent.isEmpty()) {
+                processSSEEvent(sseEvent, sseData);
+                sseEvent = "";
+                sseData  = "";
+            }
+        } else {
+            sseBuffer += c;
+        }
     }
 }
 
@@ -159,16 +234,14 @@ void pollStatus(const String& deviceId) {
 // ------------------------------------------------------------------
 void setup() {
     Serial.begin(115200);
-    // Brownout (dusuk voltaj reseti) devre disi -- USB gucten beslerken olur
-    // Gercek cozum: guclu adaptör veya 100-470uF kondansator eklemek
-    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Brownout devre disi
     delay(500);
 
     Serial.println("\n=============================");
-    Serial.println("  ESP32 IoT Cihaz");
+    Serial.println("  ESP32 IoT Cihaz  v2");
     Serial.println("=============================");
 
-    // Seri kodu NVS'den oku; yoksa uret ve kaydet
+    // Seri kodu NVS'den oku veya uret
     prefs.begin("device", false);
     serialCode = prefs.getString("serial_code", "");
     if (serialCode.isEmpty()) {
@@ -177,60 +250,81 @@ void setup() {
         prefs.putString("serial_code", serialCode);
         Serial.println("Yeni seri kodu olusturuldu.");
     } else {
-        Serial.println("Mevcut seri kodu NVS'den yuklendi.");
+        Serial.println("Seri kodu NVS'den yuklendi.");
     }
     prefs.end();
 
     Serial.println("-----------------------------");
-    Serial.print("SERI KOD : ");
+    Serial.print  ("SERI KOD : ");
     Serial.println(serialCode);
     Serial.println("-----------------------------");
-    Serial.println("Bu kodu websitesinde 'Cihaz Ekle' alanina girin.");
-    Serial.println();
+    Serial.println("Bu kodu websitesinde 'Cihaz Ekle' alanina girin.\n");
 
-    // TLS -- sertifika dogrulamasi yok (prototip)
-    tlsClient.setInsecure();
-
-    // WiFi baglantisi
-    Serial.printf("WiFi'ye baglaniliyor: %s\n", WIFI_SSID);
+    // WiFi
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    Serial.printf("WiFi baglaniliyor: %s\n", WIFI_SSID);
     int attempts = 0;
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
         Serial.print(".");
         if (++attempts > 40) {
-            Serial.println("\nWiFi baglantisi basarisiz! Yeniden baslatiliyor...");
+            Serial.println("\nWiFi basarisiz! Yeniden baslatiliyor...");
             ESP.restart();
         }
     }
     Serial.printf("\nWiFi baglandi. IP: %s\n\n", WiFi.localIP().toString().c_str());
 
-    // Firebase kaydi
-    deviceReady = registerDevice(serialCode);
-    if (!deviceReady) {
-        Serial.println("UYARI: Firebase kaydi basarisiz. Polling yine de deneniyor...");
-        deviceReady = true;
+    // Firestore kayit
+    registerInFirestore(serialCode);
+
+    // RTDB online isaretini yaz
+    Serial.println("[RTDB] Cihaz cevrimici olarak isaretleniyor...");
+    rtdbPut("/devices/" + serialCode + "/online", "true");
+    lastHeartbeat = millis();
+
+    // SSE baglantisi
+    sseConnected = connectSSE();
+    if (!sseConnected) {
+        Serial.println("SSE baglantisi kurulamadi, yeniden baslatiliyor...");
+        delay(3000);
+        ESP.restart();
     }
 
-    Serial.println("\nHazir! Websitesinden kontrol basliyor...");
-    Serial.println();
+    Serial.println("\nHazir! Komutlar aninda alinacak.\n");
 }
 
 // ------------------------------------------------------------------
 // loop
 // ------------------------------------------------------------------
 void loop() {
-    if (millis() - lastPollMs >= POLL_INTERVAL) {
-        lastPollMs = millis();
+    // WiFi kontrolu
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("WiFi kesildi, yeniden baglaniliyor...");
+        sseConnected = false;
+        WiFi.reconnect();
+        delay(5000);
+        return;
+    }
 
-        if (WiFi.status() != WL_CONNECTED) {
-            Serial.println("WiFi kesildi, yeniden baglaniliyor...");
-            WiFi.reconnect();
-            return;
+    // SSE baglantisi koptu mu?
+    if (!sseConnected || !sseClient.connected()) {
+        Serial.println("[SSE] Baglantı kesildi, yeniden baglaniliyor...");
+        delay(2000);
+        sseConnected = connectSSE();
+        if (sseConnected) {
+            // Yeniden baglaninca online bildir
+            rtdbPut("/devices/" + serialCode + "/online", "true");
+            lastHeartbeat = millis();
         }
+        return;
+    }
 
-        if (deviceReady) {
-            pollStatus(serialCode);
-        }
+    // SSE oku (bloklamaz, sadece veri varsa okur)
+    readSSE();
+
+    // Heartbeat -- online durumunu taze tut
+    if (millis() - lastHeartbeat >= HEARTBEAT_INTERVAL) {
+        lastHeartbeat = millis();
+        rtdbPut("/devices/" + serialCode + "/online", "true");
     }
 }
