@@ -32,7 +32,7 @@ String           serialCode   = "";
 bool             lastCommand  = false;
 bool             sseConnected = false;
 unsigned long    lastHeartbeat = 0;
-const unsigned long HEARTBEAT_INTERVAL = 25000; // 25 sn -- online isaretini taze tut
+const unsigned long HEARTBEAT_INTERVAL = 8000; // 8 sn -- 15 sn esiginin altinda kalsin
 
 // SSE icin kalici baglanti
 WiFiClientSecure sseClient;

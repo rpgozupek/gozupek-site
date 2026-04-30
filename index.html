@@ -293,7 +293,7 @@ async function loadUserData(uid) {
 // Aktif RTDB dinleyicilerini ve lastSeen değerlerini takip et
 const rtdbListeners = {};
 const lastSeenMap   = {};  // { deviceId: timestampMs }
-const OFFLINE_THRESHOLD = 60000; // 60 sn haber yoksa çevrimdışı
+const OFFLINE_THRESHOLD = 15000; // 15 sn haber yoksa çevrimdışı
 
 // lastSeen'e göre badge güncelle
 function updateOnlineBadge(id) {
@@ -314,10 +314,10 @@ function updateOnlineBadge(id) {
     }
 }
 
-// Her 15 sn'de tüm kartların online badge'ini güncelle
+// Her 5 sn'de tüm kartların online badge'ini güncelle
 setInterval(() => {
     Object.keys(lastSeenMap).forEach(updateOnlineBadge);
-}, 15000);
+}, 5000);
 
 function listenUserDevices(uid) {
     db.collection("devices").where("ownerUid", "==", uid)
