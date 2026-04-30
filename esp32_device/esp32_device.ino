@@ -11,6 +11,8 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
+#include "soc/soc.h"           // Brownout fix
+#include "soc/rtc_cntl_reg.h"  // Brownout fix
 
 // =====================================================
 //  KONFIGURASYON -- buraya kendi bilgilerini gir
@@ -72,20 +74,12 @@ bool registerDevice(const String& deviceId) {
         String body = http.getString();
         http.end();
 
-        // 2048 byte -- ownerUid, deviceName, lastUpdated timestamp vs. icin yeterli
-        StaticJsonDocument<2048> doc;
-        DeserializationError err = deserializeJson(doc, body);
-        if (!err) {
-            bool claimed = doc["fields"]["claimed"]["booleanValue"] | false;
-            const char* owner = doc["fields"]["ownerUid"]["stringValue"] | "";
-            if (claimed && strlen(owner) > 0) {
-                Serial.println("[Kayit] Bu cihaz bir hesaba bagli. Durum dinleniyor...");
-                Serial.printf ("[Kayit] Sahip UID: %s\n", owner);
-            } else {
-                Serial.println("[Kayit] Cihaz kayitli ama henuz sahipsiz. Website'den ekleyin.");
-            }
+        // ownerUid alaninin varligini kontrol et -- claimed field yerine
+        // ownerUid varsa cihaz bir hesaba bagli demektir
+        if (body.indexOf("ownerUid") >= 0) {
+            Serial.println("[Kayit] Bu cihaz bir hesaba bagli. Durum dinleniyor...");
         } else {
-            Serial.printf("[Kayit] JSON parse hatasi: %s -- tampon buyutuldu, tekrar denenecek\n", err.c_str());
+            Serial.println("[Kayit] Cihaz kayitli ama henuz sahipsiz. Website'den ekleyin.");
         }
         return true;
     }
@@ -165,10 +159,11 @@ void pollStatus(const String& deviceId) {
 // ------------------------------------------------------------------
 void setup() {
     Serial.begin(115200);
+    // Brownout (dusuk voltaj reseti) devre disi -- USB gucten beslerken olur
+    // Gercek cozum: guclu adaptör veya 100-470uF kondansator eklemek
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
     delay(500);
 
-    // Turkce ve kutu karakterleri Serial'da bozuluyor
-    // bu yuzden tamamen ASCII kullaniyoruz
     Serial.println("\n=============================");
     Serial.println("  ESP32 IoT Cihaz");
     Serial.println("=============================");
