@@ -15,8 +15,8 @@
 // =====================================================
 //  KONFIGURASYON -- buraya kendi bilgilerini gir
 // =====================================================
-const char* WIFI_SSID     = "WIFI_ADINIZI_GIRIN";
-const char* WIFI_PASSWORD = "WIFI_SIFRENIZI_GIRIN";
+const char* WIFI_SSID     = "RKTurknet";
+const char* WIFI_PASSWORD = "22122018";
 
 const char* FIREBASE_API_KEY     = "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE";
 const char* FIREBASE_PROJECT_ID  = "website-gozupekteknoloji";
@@ -72,17 +72,20 @@ bool registerDevice(const String& deviceId) {
         String body = http.getString();
         http.end();
 
-        StaticJsonDocument<512> doc;
+        // 2048 byte -- ownerUid, deviceName, lastUpdated timestamp vs. icin yeterli
+        StaticJsonDocument<2048> doc;
         DeserializationError err = deserializeJson(doc, body);
         if (!err) {
             bool claimed = doc["fields"]["claimed"]["booleanValue"] | false;
-            if (claimed) {
-                Serial.println("[Kayit] Bu cihaz zaten bir hesaba bagli.");
+            const char* owner = doc["fields"]["ownerUid"]["stringValue"] | "";
+            if (claimed && strlen(owner) > 0) {
+                Serial.println("[Kayit] Bu cihaz bir hesaba bagli. Durum dinleniyor...");
+                Serial.printf ("[Kayit] Sahip UID: %s\n", owner);
             } else {
-                Serial.println("[Kayit] Cihaz Firebase'de kayitli, henuz sahipsiz. Hazir.");
+                Serial.println("[Kayit] Cihaz kayitli ama henuz sahipsiz. Website'den ekleyin.");
             }
         } else {
-            Serial.println("[Kayit] JSON parse hatasi ama belge var, devam ediliyor.");
+            Serial.printf("[Kayit] JSON parse hatasi: %s -- tampon buyutuldu, tekrar denenecek\n", err.c_str());
         }
         return true;
     }
@@ -135,9 +138,10 @@ void pollStatus(const String& deviceId) {
     String body = http.getString();
     http.end();
 
-    StaticJsonDocument<1024> doc;
-    if (deserializeJson(doc, body)) {
-        Serial.println("[Poll] JSON parse hatasi");
+    StaticJsonDocument<2048> doc;
+    DeserializationError err = deserializeJson(doc, body);
+    if (err) {
+        Serial.printf("[Poll] JSON parse hatasi: %s\n", err.c_str());
         return;
     }
 
