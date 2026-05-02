@@ -615,7 +615,11 @@ document.getElementById('add-device-button').addEventListener('click', async () 
         toast(`"${deviceName}" başarıyla eklendi!`, 'success');
         closeAddModal();
     } catch (e) {
-        toast('Hata: ' + e.message, 'error');
+        if (e.code === 'permission-denied') {
+            toast('Geçersiz cihaz kodu. Lütfen kodu kontrol edin.', 'error');
+        } else {
+            toast('Hata: ' + e.message, 'error');
+        }
     } finally {
         btn.disabled = false; btn.textContent = 'Cihazı Ekle';
     }
