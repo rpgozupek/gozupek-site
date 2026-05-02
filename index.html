@@ -3,125 +3,491 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Google Oturum Açma ve Kullanıcı Verisi Kaydetme</title>
+    <title>Gözüpek Teknoloji — Endüstriyel IoT</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; text-align: center; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 600px; margin: 30px auto; background-color: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1, h2 { color: #0056b3; margin-bottom: 20px; }
-        #brand-title { display: none; font-size: 72px; font-weight: 900; letter-spacing: 8px; color: #0056b3; margin: 20px 0 10px; text-transform: uppercase; }
-        #auth-container { margin-bottom: 25px; }
-        #user-info, #user-data-form, #saved-user-data {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            text-align: left;
-            background-color: #f9f9f9;
+        /* ── Reset & Base ─────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --navy:      #0a1628;
+            --navy2:     #112240;
+            --blue:      #0056b3;
+            --blue-lt:   #1a7fe8;
+            --accent:    #00b4ff;
+            --bg:        #f0f4f8;
+            --card:      #ffffff;
+            --border:    #dde3ea;
+            --text:      #1a2332;
+            --muted:     #6b7a8d;
+            --success:   #28a745;
+            --danger:    #dc3545;
+            --warning:   #f0a500;
+            --radius:    12px;
+            --shadow:    0 2px 16px rgba(0,0,0,.08);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
         }
-        #user-info { display: none; } /* Başlangıçta gizli */
-        #user-data-form, #saved-user-data { display: none; } /* Başlangıçta gizli */
+        html { scroll-behavior: smooth; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+               background: var(--bg); color: var(--text); line-height: 1.6; }
+        a { color: inherit; text-decoration: none; }
+        img { max-width: 100%; }
 
-        #user-data-form label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; color: #555; }
-        #user-data-form input[type="number"],
-        #user-data-form input[type="text"] {
-            width: calc(100% - 22px); /* Padding ve border için ayarlama */
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box; /* Padding ve border'ı genişlik içine dahil et */
+        /* ── Utility ──────────────────────────────────────────── */
+        .hidden  { display: none !important; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 10px 20px; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: all .2s; white-space: nowrap;
         }
-        button {
-            padding: 10px 20px;
-            margin: 8px 5px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-        #google-signin-button { background-color: #4285f4; color: white; border: none; }
-        #google-signin-button:hover { background-color: #357ae8; }
-        #signout-button { background-color: #ea4335; color: white; border: none; }
-        #signout-button:hover { background-color: #d83427; }
-        #save-user-data-button { background-color: #28a745; color: white; border: none; }
-        #save-user-data-button:hover { background-color: #218838; }
+        .btn-primary   { background: var(--blue);    color: #fff; }
+        .btn-primary:hover { background: var(--blue-lt); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,86,179,.3); }
+        .btn-outline   { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+        .btn-outline:hover { background: var(--blue); color: #fff; }
+        .btn-danger    { background: var(--danger);  color: #fff; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-ghost     { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+        .btn-ghost:hover { border-color: var(--blue); color: var(--blue); }
+        .btn-sm { padding: 7px 14px; font-size: 13px; }
+        .btn:disabled { opacity: .6; cursor: not-allowed; transform: none !important; }
 
-        .data-label { font-weight: bold; margin-top: 10px; display: inline-block; width: 120px; }
-        .data-value { margin-left: 5px; color: #007bff; }
-        #user-photo {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            margin-top: 10px;
-            display: none;
-            vertical-align: middle;
-            border: 2px solid #ccc;
+        /* ── Navbar ───────────────────────────────────────────── */
+        .navbar {
+            position: sticky; top: 0; z-index: 100;
+            background: var(--navy); color: #fff;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px; height: 64px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.3);
+        }
+        .navbar-brand { display: flex; align-items: center; gap: 12px; }
+        .navbar-brand img { height: 36px; width: auto; object-fit: contain; }
+        .navbar-brand span { font-size: 17px; font-weight: 700; letter-spacing: .5px; color: #fff; }
+        .navbar-right { display: flex; align-items: center; gap: 12px; }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.3); object-fit: cover;
+        }
+        .user-name { font-size: 14px; color: rgba(255,255,255,.8); }
+
+        /* ── Landing ──────────────────────────────────────────── */
+        #landing { display: block; }
+
+        .hero {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, #0d3060 100%);
+            color: #fff; padding: 90px 32px 80px; text-align: center;
+        }
+        .hero-logo { height: 72px; margin-bottom: 28px; filter: brightness(0) invert(1); }
+        .hero h1 { font-size: clamp(28px, 5vw, 48px); font-weight: 800;
+                   letter-spacing: -1px; margin-bottom: 16px; }
+        .hero h1 span { color: var(--accent); }
+        .hero p { font-size: 18px; color: rgba(255,255,255,.7);
+                  max-width: 560px; margin: 0 auto 36px; }
+        .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+        .btn-google {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: #fff; color: #333; border: none; border-radius: 8px;
+            padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,.2); transition: all .2s;
+        }
+        .btn-google:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+        .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+        .features { max-width: 1100px; margin: 0 auto; padding: 72px 32px; }
+        .features h2 { text-align: center; font-size: 28px; font-weight: 700;
+                       color: var(--navy); margin-bottom: 48px; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+        .feature-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 28px 24px;
+            box-shadow: var(--shadow); transition: transform .2s, box-shadow .2s;
+        }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+        .feature-icon { font-size: 36px; margin-bottom: 14px; }
+        .feature-card h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+        .feature-card p  { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+        .landing-footer {
+            background: var(--navy); color: rgba(255,255,255,.5);
+            text-align: center; padding: 24px 32px; font-size: 13px;
+        }
+
+        /* ── Dashboard ────────────────────────────────────────── */
+        #dashboard { display: none; }
+
+        .dash-header {
+            background: var(--card); border-bottom: 1px solid var(--border);
+            padding: 24px 32px 20px;
+        }
+        .dash-header-top { display: flex; align-items: center;
+                           justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .dash-greeting { font-size: 22px; font-weight: 700; color: var(--navy); }
+        .dash-greeting span { color: var(--blue); }
+        .dash-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
+
+        .dash-main { max-width: 1200px; margin: 0 auto; padding: 32px; }
+
+        .section-header { display: flex; align-items: center;
+                          justify-content: space-between; margin-bottom: 20px; }
+        .section-title { font-size: 18px; font-weight: 700; color: var(--navy); }
+        .device-count { font-size: 13px; color: var(--muted);
+                        background: var(--bg); padding: 4px 10px;
+                        border-radius: 20px; border: 1px solid var(--border); }
+
+        /* ── Device Grid ──────────────────────────────────────── */
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .device-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 20px;
+            box-shadow: var(--shadow); position: relative;
+            transition: box-shadow .2s;
+        }
+        .device-card:hover { box-shadow: var(--shadow-lg); }
+        .device-card-header {
+            display: flex; align-items: flex-start;
+            justify-content: space-between; margin-bottom: 16px;
+        }
+        .device-name { font-size: 16px; font-weight: 700; color: var(--navy); }
+        .device-serial { font-size: 12px; color: var(--muted); margin-top: 2px;
+                         font-family: 'Courier New', monospace; }
+
+        /* Ayarlar butonu */
+        .settings-wrap { position: relative; }
+        .settings-btn {
+            width: 32px; height: 32px; border-radius: 8px;
+            border: 1px solid var(--border); background: var(--bg);
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; font-size: 16px; color: var(--muted);
+            transition: all .2s; flex-shrink: 0;
+        }
+        .settings-btn:hover { border-color: var(--blue); color: var(--blue); background: #e8f0fb; }
+        .settings-dropdown {
+            position: absolute; top: 38px; right: 0; z-index: 50;
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 10px; box-shadow: var(--shadow-lg);
+            min-width: 180px; overflow: hidden; display: none;
+        }
+        .settings-dropdown.open { display: block; }
+        .settings-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 16px; font-size: 14px; cursor: pointer;
+            transition: background .15s; color: var(--text); border: none;
+            background: none; width: 100%; text-align: left;
+        }
+        .settings-item:hover { background: var(--bg); }
+        .settings-item.danger { color: var(--danger); }
+        .settings-item.danger:hover { background: #fff0f0; }
+
+        /* Online badge */
+        .online-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 600; padding: 4px 10px;
+            border-radius: 20px; margin-bottom: 16px;
+        }
+        .online-badge.online  { background: #e8f8ee; color: #1a7a35; }
+        .online-badge.offline { background: #fde8e8; color: #a71d2a; }
+        .online-badge.unknown { background: #f0f0f0; color: var(--muted); }
+        .badge-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .online  .badge-dot { background: var(--success); animation: pulse 2s infinite; }
+        .offline .badge-dot { background: var(--danger); }
+        .unknown .badge-dot { background: #aaa; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; } 50% { opacity: .4; }
+        }
+
+        /* Toggle butonu */
+        .toggle-btn {
+            width: 100%; padding: 12px; border: none; border-radius: 8px;
+            font-size: 15px; font-weight: 700; cursor: pointer;
+            letter-spacing: .3px; transition: all .2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .toggle-btn.on  { background: var(--success); color: #fff; }
+        .toggle-btn.on:hover  { background: #218838; }
+        .toggle-btn.off { background: #f0f0f0; color: var(--muted); border: 1.5px solid var(--border); }
+        .toggle-btn.off:hover { background: var(--danger); color: #fff; border-color: transparent; }
+        .toggle-btn.pending { background: var(--warning); color: #fff; }
+        .toggle-btn.error   { background: var(--danger);  color: #fff; }
+        .toggle-btn:disabled { cursor: not-allowed; opacity: .75; }
+
+        /* Boş durum */
+        .empty-state {
+            grid-column: 1/-1; text-align: center;
+            padding: 64px 32px;
+        }
+        .empty-icon { font-size: 56px; margin-bottom: 16px; }
+        .empty-state h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+        .empty-state p  { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+
+        /* ── Modal ────────────────────────────────────────────── */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            background: rgba(10,22,40,.6); backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px; opacity: 0; pointer-events: none; transition: opacity .2s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: all; }
+        .modal {
+            background: var(--card); border-radius: 16px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.25);
+            width: 100%; max-width: 440px;
+            transform: translateY(16px); transition: transform .25s;
+        }
+        .modal-overlay.open .modal { transform: translateY(0); }
+        .modal-header {
+            padding: 24px 24px 0;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .modal-title { font-size: 18px; font-weight: 700; color: var(--navy); }
+        .modal-close {
+            width: 32px; height: 32px; border-radius: 8px; border: none;
+            background: var(--bg); cursor: pointer; font-size: 18px; color: var(--muted);
+            display: flex; align-items: center; justify-content: center; transition: all .15s;
+        }
+        .modal-close:hover { background: #fde8e8; color: var(--danger); }
+        .modal-body { padding: 20px 24px; }
+        .modal-footer { padding: 0 24px 24px;
+                        display: flex; gap: 10px; justify-content: flex-end; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 13px; font-weight: 600;
+                      color: var(--muted); margin-bottom: 6px; text-transform: uppercase;
+                      letter-spacing: .5px; }
+        .form-input {
+            width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+            border-radius: 8px; font-size: 14px; color: var(--text);
+            background: var(--bg); transition: border-color .2s;
+            outline: none;
+        }
+        .form-input:focus { border-color: var(--blue); background: #fff; }
+        .form-hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+        /* ── Toast ────────────────────────────────────────────── */
+        .toast-wrap {
+            position: fixed; bottom: 24px; right: 24px; z-index: 300;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .toast {
+            background: var(--navy); color: #fff; padding: 12px 18px;
+            border-radius: 10px; font-size: 14px; font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0,0,0,.25);
+            animation: slideUp .25s ease; pointer-events: all;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error   { border-left: 4px solid var(--danger); }
+        .toast.info    { border-left: 4px solid var(--accent); }
+        @keyframes slideUp {
+            from { transform: translateY(16px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        /* ── Responsive ───────────────────────────────────────── */
+        @media (max-width: 600px) {
+            .navbar { padding: 0 16px; }
+            .dash-main { padding: 16px; }
+            .dash-header { padding: 16px; }
+            .hero { padding: 56px 16px 48px; }
+            .features { padding: 48px 16px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Firebaseee</h1>
-        <div id="brand-title">GÖZÜPEK TEKNOLOJİ</div>
 
-        <div id="auth-container">
-            <button id="google-signin-button">Google ile Oturum Aç</button>
-            <button id="signout-button" style="display: none;">Oturumu Kapat</button>
+<!-- ══════════════════════════════════════════════════════════
+     LANDING (giriş yapılmamış)
+═══════════════════════════════════════════════════════════ -->
+<div id="landing">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="GT-logo.png" alt="Gözüpek Teknoloji" onerror="this.style.display='none'">
+            <span>GÖZÜPEK TEKNOLOJİ</span>
         </div>
+        <button class="btn-google" id="google-signin-button" style="padding:8px 18px;font-size:14px;">
+            <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.3 19 12 24 12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4c-7.7 0-14.4 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5L31.8 34C29.9 35.3 27.1 36 24 36c-5.3 0-9.6-3-11.3-7.4l-6.5 5C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.5l6.1 4.9C41 34.6 44 29.8 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+            Google ile Giriş Yap
+        </button>
+    </nav>
 
-        <div id="user-info">
-            <h2>Hoş Geldiniz!</h2>
-            <p><span class="data-label">Kullanıcı Adı:</span> <span id="user-display-name" class="data-value"></span></p>
-            <p><span class="data-label">E-posta:</span> <span id="user-email" class="data-value"></span></p>
-            <p><span class="data-label">UID:</span> <span id="user-uid" class="data-value"></span></p>
-            <img id="user-photo" src="" alt="Kullanıcı Fotoğrafı">
+    <!-- Hero -->
+    <section class="hero">
+        <img src="GT-logo.png" alt="Gözüpek Teknoloji" class="hero-logo" onerror="this.style.display='none'">
+        <h1>Fabrikalarınızı<br><span>Akıllı Hale Getirin</span></h1>
+        <p>Makinelerinizi anlık izleyin, arızaları önceden tespit edin,
+           üretim veriminizi web ve mobil üzerinden her an kontrol edin.</p>
+        <div class="hero-btns">
+            <button class="btn-google" id="google-signin-button-2">
+                <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20H24v8h11.3C33.6 33 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.3 19 12 24 12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4c-7.7 0-14.4 4.4-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-1.9 13.5-5L31.8 34C29.9 35.3 27.1 36 24 36c-5.3 0-9.6-3-11.3-7.4l-6.5 5C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.5l6.1 4.9C41 34.6 44 29.8 44 24c0-1.3-.1-2.7-.4-4z"/></svg>
+                Google ile Ücretsiz Başla
+            </button>
         </div>
+    </section>
 
-        <!-- Kullanıcı Verisi Giriş Alanı -->
-        <div id="user-data-form">
-            <h2>Kişisel Bilgilerinizi Girin</h2>
-            <label for="user-age">Yaş:</label>
-            <input type="number" id="user-age" placeholder="Yaşınızı girin">
-
-            <label for="user-team">Tuttuğu Takım:</label>
-            <input type="text" id="user-team" placeholder="Tuttuğunuz takımı girin">
-
-            <label for="user-car-model">Araba Modeli:</label>
-            <input type="text" id="user-car-model" placeholder="Araba modelinizi girin">
-
-            <button id="save-user-data-button">Bilgileri Kaydet</button>
+    <!-- Özellikler -->
+    <section class="features">
+        <h2>Sisteminizi Tek Noktadan Yönetin</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Anlık İzleme</h3>
+                <p>Cihazlarınızın durumunu gerçek zamanlı olarak takip edin.
+                   200ms altında gecikme ile komutlarınız anında iletilir.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔔</div>
+                <h3>Arıza Bildirimleri</h3>
+                <p>Makine durduğunda veya üretim döngüsünde sapma tespit edildiğinde
+                   telefonunuza anlık bildirim alın.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Üretim Sayacı</h3>
+                <p>Vardiya bazlı üretim adetlerini otomatik sayın. Raporları
+                   web panelinden görüntüleyin ve dışa aktarın.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Güvenli Mimari</h3>
+                <p>Her cihaz benzersiz seri kodla tanımlanır. Yetkisiz erişim
+                   mümkün değil. Verileriniz şifreli olarak saklanır.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🏭</div>
+                <h3>Kolay Entegrasyon</h3>
+                <p>Mevcut makinenize öğrenme modu ile adaptasyon sağlar.
+                   Kurulum için makineyi durdurmak gerekmez.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">☁️</div>
+                <h3>İnternetsiz Çalışma</h3>
+                <p>Cihazın ana görevi internet bağlantısına bağlı değil.
+                   İnternet varsa uzaktan izleme aktif olur.</p>
+            </div>
         </div>
-        <div id="device-management" style="display: none;">
-            <h2>Cihazlarım</h2>
-    
-            <div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
-            <input type="text" id="new-device-id" placeholder="Seri Kodu (Örn: ESP-A3F2B1)" style="text-transform:uppercase;" autocomplete="off">
-            <input type="text" id="new-device-name" placeholder="Cihaz Adı (Örn: Salon)" autocomplete="off">
-            <button id="add-device-button" style="background-color: #007bff; color: white; border: none;">Cihaz Ekle</button>
+    </section>
+
+    <footer class="landing-footer">
+        © <span id="year"></span> Gözüpek Teknoloji — Tüm hakları saklıdır.
+    </footer>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     DASHBOARD (giriş yapılmış)
+═══════════════════════════════════════════════════════════ -->
+<div id="dashboard">
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="GT-logo.png" alt="Gözüpek Teknoloji" onerror="this.style.display='none'">
+            <span>GÖZÜPEK TEKNOLOJİ</span>
+        </div>
+        <div class="navbar-right">
+            <img id="user-photo" class="user-avatar" src="" alt="">
+            <span id="user-name-nav" class="user-name"></span>
+            <button class="btn btn-primary btn-sm" id="open-add-modal-btn">＋ Cihaz Ekle</button>
+            <button class="btn btn-ghost btn-sm" id="signout-button">Çıkış</button>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="dash-header">
+        <div class="dash-header-top">
+            <div>
+                <div class="dash-greeting">Hoş geldiniz, <span id="user-display-name"></span></div>
+                <div class="dash-sub" id="user-email"></div>
+            </div>
+        </div>
     </div>
 
-    <div id="device-list">
-        <p>Yükleniyor...</p>
+    <!-- Ana içerik -->
+    <div class="dash-main">
+        <div class="section-header">
+            <span class="section-title">Cihazlarım</span>
+            <span class="device-count" id="device-count">0 cihaz</span>
+        </div>
+        <div class="device-grid" id="device-list">
+            <div class="empty-state">
+                <div class="empty-icon">📡</div>
+                <h3>Yükleniyor...</h3>
+            </div>
+        </div>
     </div>
 </div>
 
-        <!-- Kaydedilen Kullanıcı Verilerini Gösterme Alanı -->
-        <div id="saved-user-data">
-            <h2>Kaydedilmiş Bilgileriniz</h2>
-            <p><span class="data-label">Yaş:</span> <span id="display-age" class="data-value"></span></p>
-            <p><span class="data-label">Tuttuğu Takım:</span> <span id="display-team" class="data-value"></span></p>
-            <p><span class="data-label">Araba Modeli:</span> <span id="display-car-model" class="data-value"></span></p>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL — Cihaz Ekle
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="add-device-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Yeni Cihaz Ekle</span>
+            <button class="modal-close" onclick="closeAddModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Seri Kodu</label>
+                <input class="form-input" type="text" id="new-device-id"
+                       placeholder="GZP-XXXXXXXXXX" autocomplete="off"
+                       style="text-transform:uppercase; font-family:'Courier New',monospace; letter-spacing:1px;">
+                <div class="form-hint">ESP32 cihazının Serial Monitor'unda görünen kod</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Cihaz Adı</label>
+                <input class="form-input" type="text" id="new-device-name"
+                       placeholder="Örn: Pres No.3 — Üretim Hattı A" autocomplete="off">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeAddModal()">İptal</button>
+            <button class="btn btn-primary" id="add-device-button">Cihazı Ekle</button>
         </div>
     </div>
+</div>
 
-    <!-- Firebase SDK Yükleme -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
-    <script>
-        // 1. Firebase Yapılandırması (Senin mevcut config bilgilerin)
+<!-- ══════════════════════════════════════════════════════════
+     MODAL — Cihaz Ayarları (Yeniden Adlandır)
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="rename-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Cihazı Yeniden Adlandır</span>
+            <button class="modal-close" onclick="closeRenameModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Yeni Cihaz Adı</label>
+                <input class="form-input" type="text" id="rename-input"
+                       placeholder="Cihaz adını girin" autocomplete="off">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeRenameModal()">İptal</button>
+            <button class="btn btn-primary" id="rename-save-btn">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Toast -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     Firebase SDK
+═══════════════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ── Firebase ────────────────────────────────────────────────
 const firebaseConfig = {
     apiKey: "AIzaSyAK1NJ-dfAkrqESYN1ort95UnGJg-YWxAE",
     authDomain: "website-gozupekteknoloji.firebaseapp.com",
@@ -131,382 +497,343 @@ const firebaseConfig = {
     appId: "1:941332210669:web:9547087e4a6d126c173de4",
     measurementId: "G-RPLGF3F943"
 };
-
-// 2. Firebase'i Başlat
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db   = firebase.firestore();
 const rtdb = firebase.database();
 
-// 3. HTML Element Referansları
-const googleSignInButton = document.getElementById('google-signin-button');
-const signOutButton = document.getElementById('signout-button');
-const userInfoDiv = document.getElementById('user-info');
-const userDataForm = document.getElementById('user-data-form');
-const deviceManagementDiv = document.getElementById('device-management');
-const deviceListDiv = document.getElementById('device-list');
-const addDeviceButton = document.getElementById('add-device-button');
-const newDeviceIdInput = document.getElementById('new-device-id');
-const newDeviceNameInput = document.getElementById('new-device-name');
+// ── Yıl ────────────────────────────────────────────────────
+document.getElementById('year').textContent = new Date().getFullYear();
 
-// 4. OTURUM İŞLEMLERİ
-googleSignInButton.addEventListener('click', async () => {
-    const googleProvider = new firebase.auth.GoogleAuthProvider();
-    try {
-        await auth.signInWithPopup(googleProvider);
-    } catch (error) {
-        console.error("Giriş hatası:", error);
-        alert("Oturum açılamadı: " + error.message);
-    }
+// ── Toast ───────────────────────────────────────────────────
+function toast(msg, type = 'info', duration = 3000) {
+    const wrap = document.getElementById('toast-wrap');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = msg;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), duration);
+}
+
+// ── Giriş ───────────────────────────────────────────────────
+function signIn() {
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+        .catch(e => toast('Giriş başarısız: ' + e.message, 'error'));
+}
+document.getElementById('google-signin-button').addEventListener('click', signIn);
+document.getElementById('google-signin-button-2').addEventListener('click', signIn);
+document.getElementById('signout-button').addEventListener('click', () => auth.signOut());
+
+// ── Modal: Cihaz Ekle ───────────────────────────────────────
+function openAddModal()  {
+    document.getElementById('add-device-overlay').classList.add('open');
+    document.getElementById('new-device-id').focus();
+}
+function closeAddModal() {
+    document.getElementById('add-device-overlay').classList.remove('open');
+    document.getElementById('new-device-id').value   = '';
+    document.getElementById('new-device-name').value = '';
+}
+document.getElementById('open-add-modal-btn').addEventListener('click', openAddModal);
+document.getElementById('add-device-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeAddModal();
 });
 
-signOutButton.addEventListener('click', () => {
-    auth.signOut().catch(err => alert("Çıkış hatası: " + err.message));
+// Enter ile ekle
+document.getElementById('new-device-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('add-device-button').click();
 });
 
-// 5. CİHAZ YÖNETİMİ
-addDeviceButton.addEventListener('click', async () => {
+// ── Cihaz Ekle ──────────────────────────────────────────────
+document.getElementById('add-device-button').addEventListener('click', async () => {
     const user = auth.currentUser;
-    const deviceId = newDeviceIdInput.value.trim().toUpperCase();
-    const deviceName = newDeviceNameInput.value.trim();
+    const deviceId   = document.getElementById('new-device-id').value.trim().toUpperCase();
+    const deviceName = document.getElementById('new-device-name').value.trim();
 
     if (!user || !deviceId || !deviceName) {
-        alert("Lütfen tüm alanları doldurun.");
-        return;
+        toast('Lütfen tüm alanları doldurun.', 'error'); return;
     }
 
-    try {
-        addDeviceButton.disabled = true;
-        addDeviceButton.textContent = "Kontrol ediliyor...";
+    const btn = document.getElementById('add-device-button');
+    btn.disabled = true; btn.textContent = 'Kontrol ediliyor...';
 
-        const docRef = db.collection("devices").doc(deviceId);
+    try {
+        const docRef  = db.collection('devices').doc(deviceId);
         const docSnap = await docRef.get();
 
         if (!docSnap.exists) {
-            alert("Bu seri koda sahip bir cihaz bulunamadı.\nLütfen ESP32'nin açık olduğundan ve seri kodunu doğru girdiğinizden emin olun.");
+            toast('Bu seri kod bulunamadı. Cihazın açık olduğundan emin olun.', 'error');
             return;
         }
-
         const data = docSnap.data();
         if (data.ownerUid) {
-            if (data.ownerUid === user.uid) {
-                alert("Bu cihaz zaten sizin hesabınıza kayıtlı.");
-            } else {
-                alert("Bu cihaz başka bir hesaba kayıtlı. Farklı bir seri kod deneyin.");
-            }
+            toast(data.ownerUid === user.uid
+                ? 'Bu cihaz zaten hesabınıza kayıtlı.'
+                : 'Bu cihaz başka bir hesaba kayıtlı.', 'error');
             return;
         }
-
         await docRef.update({
-            ownerUid: user.uid,
-            deviceName: deviceName,
+            ownerUid: user.uid, deviceName,
             claimed: true,
             lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         });
-
-        alert(`"${deviceName}" cihazı başarıyla eklendi!`);
-        newDeviceIdInput.value = "";
-        newDeviceNameInput.value = "";
-    } catch (error) {
-        alert("Cihaz ekleme hatası: " + error.message);
+        toast(`"${deviceName}" başarıyla eklendi!`, 'success');
+        closeAddModal();
+    } catch (e) {
+        toast('Hata: ' + e.message, 'error');
     } finally {
-        addDeviceButton.disabled = false;
-        addDeviceButton.textContent = "Cihaz Ekle";
+        btn.disabled = false; btn.textContent = 'Cihazı Ekle';
     }
 });
 
-// --- KULLANICI VERİLERİNİ (YAŞ, TAKIM, ARABA) KAYDETME ---
-const saveUserDataButton = document.getElementById('save-user-data-button');
-const userAgeInput = document.getElementById('user-age');
-const userTeamInput = document.getElementById('user-team');
-const userCarModelInput = document.getElementById('user-car-model');
-
-saveUserDataButton.addEventListener('click', async () => {
-    const user = auth.currentUser;
-    if (user) {
-        const age = userAgeInput.value ? parseInt(userAgeInput.value) : null;
-        const team = userTeamInput.value.trim();
-        const carModel = userCarModelInput.value.trim();
-
-        try {
-            await db.collection("users").doc(user.uid).set({
-                age: age,
-                team: team,
-                carModel: carModel,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            alert("Kişisel bilgileriniz başarıyla kaydedildi!");
-            // Bilgileri ekranda güncellemek için tekrar yükle
-            loadUserData(user.uid);
-        } catch (error) {
-            console.error("Veri kaydetme hatası:", error);
-            alert("Bilgileri kaydederken bir hata oluştu: " + error.message);
-        }
-    } else {
-        alert("Lütfen önce oturum açın.");
-    }
-});
-
-// Verileri Firestore'dan çekip ekrana yazdıran fonksiyon
-async function loadUserData(uid) {
-    try {
-        const doc = await db.collection("users").doc(uid).get();
-        
-        // Elementleri burada tekrar tanımlayalım ki hata payı kalmasın
-        const ageInput = document.getElementById('user-age');
-        const teamInput = document.getElementById('user-team');
-        const carInput = document.getElementById('user-car-model');
-        const displayAge = document.getElementById('display-age');
-        const displayTeam = document.getElementById('display-team');
-        const displayCar = document.getElementById('display-car-model');
-        const savedDataDiv = document.getElementById('saved-user-data');
-
-        if (doc.exists) {
-            const data = doc.data();
-            
-            // Input kutularını doldur
-            if(ageInput) ageInput.value = data.age || '';
-            if(teamInput) teamInput.value = data.team || '';
-            if(carInput) carInput.value = data.carModel || '';
-
-            // Alt taraftaki "Kaydedilmiş Bilgileriniz" kısmını doldur
-            if(displayAge) displayAge.textContent = data.age || 'N/A';
-            if(displayTeam) displayTeam.textContent = data.team || 'N/A';
-            if(displayCar) displayCar.textContent = data.carModel || 'N/A';
-
-            // Bilgi alanı gizliyse göster
-            if(savedDataDiv) savedDataDiv.style.display = 'block';
-            
-            console.log("Kullanıcı verileri başarıyla yüklendi:", data);
-        } else {
-            console.log("Kullanıcıya ait kayıtlı döküman bulunamadı.");
-        }
-    } catch (error) {
-        console.error("Veri yükleme hatası:", error);
-    }
+// ── Modal: Yeniden Adlandır ─────────────────────────────────
+let renameTargetId = null;
+function openRenameModal(id, currentName) {
+    closeAllDropdowns();
+    renameTargetId = id;
+    document.getElementById('rename-input').value = currentName;
+    document.getElementById('rename-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('rename-input').select(), 50);
 }
+function closeRenameModal() {
+    document.getElementById('rename-overlay').classList.remove('open');
+    renameTargetId = null;
+}
+document.getElementById('rename-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeRenameModal();
+});
+document.getElementById('rename-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('rename-save-btn').click();
+});
+document.getElementById('rename-save-btn').addEventListener('click', async () => {
+    const newName = document.getElementById('rename-input').value.trim();
+    if (!newName || !renameTargetId) return;
+    try {
+        await db.collection('devices').doc(renameTargetId).update({
+            deviceName: newName,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        toast('Cihaz adı güncellendi.', 'success');
+        closeRenameModal();
+    } catch (e) {
+        toast('Güncelleme hatası: ' + e.message, 'error');
+    }
+});
 
-// Aktif RTDB dinleyicilerini ve lastSeen değerlerini takip et
-const rtdbListeners = {};
-const lastSeenMap   = {};  // { deviceId: timestampMs }
-const OFFLINE_THRESHOLD = 15000; // 15 sn haber yoksa çevrimdışı
+// ── Dropdown (ayarlar menüsü) ───────────────────────────────
+function closeAllDropdowns() {
+    document.querySelectorAll('.settings-dropdown.open')
+            .forEach(d => d.classList.remove('open'));
+}
+window.toggleSettings = (id) => {
+    const dd = document.getElementById('dd-' + id);
+    const isOpen = dd.classList.contains('open');
+    closeAllDropdowns();
+    if (!isOpen) dd.classList.add('open');
+};
+document.addEventListener('click', e => {
+    if (!e.target.closest('.settings-wrap')) closeAllDropdowns();
+});
 
-// Geçen süreyi okunabilir formata çevir
+// ── Cihaz Sil ───────────────────────────────────────────────
+window.removeDevice = async (id) => {
+    closeAllDropdowns();
+    if (!confirm(`"${id}" seri kodlu cihazı hesabınızdan kaldırmak istiyor musunuz?`)) return;
+    try {
+        await db.collection('devices').doc(id).update({
+            ownerUid:   firebase.firestore.FieldValue.delete(),
+            deviceName: firebase.firestore.FieldValue.delete(),
+            claimed: false, status: false,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        toast('Cihaz kaldırıldı.', 'info');
+    } catch (e) {
+        toast('Silinemedi: ' + e.message, 'error');
+    }
+};
+
+// ── Online Badge ────────────────────────────────────────────
+const lastSeenMap = {};
+const OFFLINE_THRESHOLD = 15000;
+
 function formatElapsed(ms) {
-    const sn  = Math.floor(ms / 1000);
-    const dk  = Math.floor(sn / 60);
-    const sa  = Math.floor(dk / 60);
-    const gun = Math.floor(sa / 24);
-
+    const sn = Math.floor(ms/1000), dk = Math.floor(sn/60),
+          sa = Math.floor(dk/60),   gun = Math.floor(sa/24);
     if (sn < 60)  return `${sn} sn`;
     if (dk < 60)  return `${dk} dk`;
-    if (sa < 24) {
-        const kalanDk = dk % 60;
-        return kalanDk > 0 ? `${sa} saat ${kalanDk} dk` : `${sa} saat`;
-    }
-    const kalanSa = sa % 24;
-    const kalanDk = dk % 60;
-    let s = `${gun} gün`;
-    if (kalanSa > 0) s += ` ${kalanSa} saat`;
-    if (kalanDk > 0) s += ` ${kalanDk} dk`;
-    return s;
+    if (sa < 24)  { const r = dk%60; return r ? `${sa} saat ${r} dk` : `${sa} saat`; }
+    const rs = sa%24, rd = dk%60;
+    return `${gun} gün${rs ? ' '+rs+' saat' : ''}${rd ? ' '+rd+' dk' : ''}`;
 }
 
-// lastSeen'e göre badge güncelle
 function updateOnlineBadge(id) {
-    const el = document.getElementById('status-' + id);
+    const el   = document.getElementById('badge-' + id);
     if (!el) return;
     const ls   = lastSeenMap[id] || 0;
     const diff = Date.now() - ls;
-    if (ls === 0) {
-        el.textContent = '⚫ Hiç bağlanmadı';
-        el.style.color = '#aaa';
+    if (!ls) {
+        el.className = 'online-badge unknown';
+        el.innerHTML = '<span class="badge-dot"></span>Hiç bağlanmadı';
     } else if (diff < OFFLINE_THRESHOLD) {
-        el.textContent = '🟢 Çevrimiçi';
-        el.style.color = '#28a745';
+        el.className = 'online-badge online';
+        el.innerHTML = '<span class="badge-dot"></span>Çevrimiçi';
     } else {
-        el.textContent = `🔴 Çevrimdışı (${formatElapsed(diff)} önce görüldü)`;
-        el.style.color = '#ea4335';
+        el.className = 'online-badge offline';
+        el.innerHTML = `<span class="badge-dot"></span>Çevrimdışı · ${formatElapsed(diff)} önce`;
     }
 }
+setInterval(() => Object.keys(lastSeenMap).forEach(updateOnlineBadge), 5000);
 
-// Her 5 sn'de tüm kartların online badge'ini güncelle
-setInterval(() => {
-    Object.keys(lastSeenMap).forEach(updateOnlineBadge);
-}, 5000);
-
-function listenUserDevices(uid) {
-    db.collection("devices").where("ownerUid", "==", uid)
-    .onSnapshot((snapshot) => {
-
-        // Eski RTDB dinleyicilerini temizle
-        Object.keys(rtdbListeners).forEach(id => {
-            rtdb.ref('devices/' + id).off('value', rtdbListeners[id]);
-            delete rtdbListeners[id];
-            delete lastSeenMap[id];
-        });
-
-        deviceListDiv.innerHTML = "";
-
-        if (snapshot.empty) {
-            deviceListDiv.innerHTML = "<p>Henüz kayıtlı bir cihazınız yok.</p>";
-            return;
-        }
-
-        snapshot.forEach((doc) => {
-            const device = doc.data();
-            const id = doc.id;
-
-            // Kart oluştur
-            const card = document.createElement('div');
-            card.id = 'card-' + id;
-            card.style = "background:#fff; border:1px solid #ddd; padding:10px; margin-top:10px; border-radius:5px; display:flex; justify-content:space-between; align-items:center; gap:8px;";
-            card.innerHTML = `
-                <div style="flex:1;">
-                    <strong>${device.deviceName}</strong><br>
-                    <small style="color:#888;">Seri No: ${id}</small><br>
-                    <small id="status-${id}" style="color:#aaa;">Bağlanıyor...</small>
-                </div>
-                <button id="btn-${id}" onclick="toggleDevice('${id}')"
-                        style="background:#aaa; color:white; border:none; padding:8px 15px; cursor:pointer; border-radius:4px; min-width:80px;">
-                    ...
-                </button>
-                <button onclick="removeDevice('${id}')"
-                        style="background:#6c757d; color:white; border:none; padding:8px 12px; cursor:pointer; border-radius:4px;">
-                    Sil
-                </button>
-            `;
-            deviceListDiv.appendChild(card);
-
-            // RTDB anlık dinle
-            const listener = rtdb.ref('devices/' + id).on('value', (snap) => {
-                const state    = snap.val() || {};
-                const lastSeen = state.lastSeen || 0;
-
-                // lastSeen güncelle
-                lastSeenMap[id] = lastSeen;
-                updateOnlineBadge(id);
-
-                // Butonu status'a göre güncelle (command değil!)
-                // status: ESP32'nin onayladığı gerçek durum
-                if ('status' in (state || {})) {
-                    const status = state.status === true;
-                    const btn = document.getElementById('btn-' + id);
-                    if (btn && !btn.dataset.pending) {
-                        btn.textContent      = status ? 'AÇIK' : 'KAPALI';
-                        btn.style.background = status ? '#28a745' : '#ea4335';
-                        btn.disabled         = false;
-                    } else if (btn && btn.dataset.pending) {
-                        // Beklenen onay geldi mi kontrol et
-                        if (String(status) === btn.dataset.pending) {
-                            btn.textContent      = status ? 'AÇIK' : 'KAPALI';
-                            btn.style.background = status ? '#28a745' : '#ea4335';
-                            btn.disabled         = false;
-                            delete btn.dataset.pending;
-                            // Timeout varsa iptal et
-                            if (pendingTimeouts[id]) {
-                                clearTimeout(pendingTimeouts[id]);
-                                delete pendingTimeouts[id];
-                            }
-                        }
-                    }
-                }
-            });
-
-            rtdbListeners[id] = listener;
-        });
-
-    }, (error) => {
-        console.error("Dinleme hatası:", error);
-    });
-}
-
+// ── Toggle ───────────────────────────────────────────────────
 const pendingTimeouts = {};
 
 window.toggleDevice = async (id) => {
     const btn = document.getElementById('btn-' + id);
-    if (!btn || btn.disabled) return; // Zaten bekleniyorsa tıklamayı yoksay
-
+    if (!btn || btn.disabled) return;
     try {
-        const snap    = await rtdb.ref('devices/' + id + '/command').once('value');
-        const current = snap.val() === true;
-        const next    = !current;
-
-        // Butonu "bekleniyor" moduna al
-        btn.disabled         = true;
-        btn.textContent      = '⏳ Bekleniyor...';
-        btn.style.background = '#f0a500';
-        btn.dataset.pending  = String(next); // Beklediğimiz onay değeri
-
-        // Komutu gönder
+        const snap = await rtdb.ref('devices/' + id + '/command').once('value');
+        const next = !(snap.val() === true);
+        btn.disabled = true;
+        btn.className = 'toggle-btn pending';
+        btn.textContent = '⏳ Bekleniyor...';
+        btn.dataset.pending = String(next);
         await rtdb.ref('devices/' + id + '/command').set(next);
-
-        // 6 saniye içinde onay gelmezse zaman aşımı
         pendingTimeouts[id] = setTimeout(() => {
             if (btn.dataset.pending) {
-                btn.textContent      = '⚠️ Yanıt yok';
-                btn.style.background = '#dc3545';
-                btn.disabled         = false;
+                btn.className = 'toggle-btn error';
+                btn.textContent = '⚠️ Yanıt yok';
+                btn.disabled = false;
                 delete btn.dataset.pending;
             }
         }, 6000);
-
-    } catch (error) {
-        if (btn) {
-            btn.disabled         = false;
-            btn.style.background = '#ea4335';
-            btn.textContent      = 'Hata';
+    } catch (e) {
+        if (document.getElementById('btn-' + id)) {
+            const b = document.getElementById('btn-' + id);
+            b.disabled = false;
+            b.className = 'toggle-btn off';
+            b.textContent = 'Hata';
         }
-        alert("Komut gönderilemedi: " + error.message);
+        toast('Komut gönderilemedi: ' + e.message, 'error');
     }
 };
 
-window.removeDevice = async (id) => {
-    if (!confirm(`"${id}" seri kodlu cihazı hesabınızdan kaldırmak istiyor musunuz?`)) return;
-    try {
-        await db.collection("devices").doc(id).update({
-            ownerUid: firebase.firestore.FieldValue.delete(),
-            deviceName: firebase.firestore.FieldValue.delete(),
-            claimed: false,
-            status: false,
-            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+// ── Cihaz Listesi ───────────────────────────────────────────
+const rtdbListeners = {};
+
+function listenUserDevices(uid) {
+    db.collection('devices').where('ownerUid', '==', uid)
+    .onSnapshot(snapshot => {
+        // Eski RTDB dinleyicilerini temizle
+        Object.keys(rtdbListeners).forEach(id => {
+            rtdb.ref('devices/' + id).off('value', rtdbListeners[id]);
+            delete rtdbListeners[id]; delete lastSeenMap[id];
         });
-    } catch (error) {
-        alert("Cihaz kaldırılamadı: " + error.message);
-    }
-};
 
-// 6. DURUM KONTROLÜ
-auth.onAuthStateChanged((user) => {
+        const list = document.getElementById('device-list');
+        list.innerHTML = '';
+        document.getElementById('device-count').textContent =
+            snapshot.size + ' cihaz';
+
+        if (snapshot.empty) {
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📡</div>
+                    <h3>Henüz cihaz eklenmedi</h3>
+                    <p>Sağ üstteki "Cihaz Ekle" butonuna tıklayarak<br>ilk cihazınızı ekleyin.</p>
+                    <button class="btn btn-primary" onclick="openAddModal()">＋ Cihaz Ekle</button>
+                </div>`;
+            return;
+        }
+
+        snapshot.forEach(doc => {
+            const device = doc.data();
+            const id = doc.id;
+
+            const card = document.createElement('div');
+            card.className = 'device-card';
+            card.id = 'card-' + id;
+            card.innerHTML = `
+                <div class="device-card-header">
+                    <div>
+                        <div class="device-name">${device.deviceName}</div>
+                        <div class="device-serial">${id}</div>
+                    </div>
+                    <div class="settings-wrap">
+                        <button class="settings-btn" onclick="toggleSettings('${id}')" title="Ayarlar">⚙</button>
+                        <div class="settings-dropdown" id="dd-${id}">
+                            <button class="settings-item"
+                                onclick="openRenameModal('${id}', '${device.deviceName.replace(/'/g,"\\'")}')">
+                                ✏️ Yeniden Adlandır
+                            </button>
+                            <button class="settings-item danger"
+                                onclick="removeDevice('${id}')">
+                                🗑️ Cihazı Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="badge-${id}" class="online-badge unknown">
+                    <span class="badge-dot"></span>Bağlanıyor...
+                </div>
+                <button id="btn-${id}" class="toggle-btn off"
+                        onclick="toggleDevice('${id}')">
+                    KAPALI
+                </button>`;
+            list.appendChild(card);
+
+            // RTDB dinle
+            const listener = rtdb.ref('devices/' + id).on('value', snap => {
+                const state    = snap.val() || {};
+                const lastSeen = state.lastSeen || 0;
+                lastSeenMap[id] = lastSeen;
+                updateOnlineBadge(id);
+
+                if ('status' in state) {
+                    const status = state.status === true;
+                    const btn = document.getElementById('btn-' + id);
+                    if (!btn) return;
+                    if (!btn.dataset.pending) {
+                        btn.className = `toggle-btn ${status ? 'on' : 'off'}`;
+                        btn.textContent = status ? 'AÇIK' : 'KAPALI';
+                        btn.disabled = false;
+                    } else if (String(status) === btn.dataset.pending) {
+                        btn.className = `toggle-btn ${status ? 'on' : 'off'}`;
+                        btn.textContent = status ? 'AÇIK' : 'KAPALI';
+                        btn.disabled = false;
+                        delete btn.dataset.pending;
+                        if (pendingTimeouts[id]) {
+                            clearTimeout(pendingTimeouts[id]);
+                            delete pendingTimeouts[id];
+                        }
+                    }
+                }
+            });
+            rtdbListeners[id] = listener;
+        });
+    }, e => console.error('Dinleme hatası:', e));
+}
+
+// ── Auth State ──────────────────────────────────────────────
+auth.onAuthStateChanged(user => {
     if (user) {
-        document.getElementById('brand-title').style.display = 'block';
-        googleSignInButton.style.display = 'none';
-        signOutButton.style.display = 'inline-block';
-        userInfoDiv.style.display = 'block';
-        userDataForm.style.display = 'block';
-        deviceManagementDiv.style.display = 'block';
-        
-        // Kullanıcı verilerini göster (Eski kodundaki kısımlar)
-        document.getElementById('user-display-name').textContent = user.displayName;
-        document.getElementById('user-email').textContent = user.email;
-        document.getElementById('user-uid').textContent = user.uid;
-
+        document.getElementById('landing').classList.add('hidden');
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('user-display-name').textContent = user.displayName || '';
+        document.getElementById('user-email').textContent       = user.email || '';
+        document.getElementById('user-name-nav').textContent    = user.displayName || '';
+        const photo = document.getElementById('user-photo');
+        if (user.photoURL) { photo.src = user.photoURL; photo.style.display = 'block'; }
         listenUserDevices(user.uid);
-        loadUserData(user.uid);
     } else {
-        document.getElementById('brand-title').style.display = 'none';
-        googleSignInButton.style.display = 'inline-block';
-        signOutButton.style.display = 'none';
-        userInfoDiv.style.display = 'none';
-        userDataForm.style.display = 'none';
-        deviceManagementDiv.style.display = 'none';
-        deviceListDiv.innerHTML = "";
+        document.getElementById('landing').classList.remove('hidden');
+        document.getElementById('dashboard').style.display = 'none';
+        Object.keys(rtdbListeners).forEach(id => {
+            rtdb.ref('devices/' + id).off('value', rtdbListeners[id]);
+            delete rtdbListeners[id];
+        });
+        document.getElementById('device-list').innerHTML = '';
     }
 });
-    </script>
+</script>
 </body>
 </html>
