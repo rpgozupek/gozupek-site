@@ -211,6 +211,11 @@
         .toggle-btn.pending { background: var(--warning); color: #fff; }
         .toggle-btn.error   { background: var(--danger);  color: #fff; }
         .toggle-btn:disabled { cursor: not-allowed; opacity: .75; }
+        .toggle-btn.offline-disabled {
+            background: #e8e8e8 !important; color: #b0b0b0 !important;
+            border: 1.5px solid #d8d8d8 !important; opacity: 1 !important;
+            cursor: not-allowed !important;
+        }
 
         /* Boş durum */
         .empty-state {
@@ -654,6 +659,7 @@ window.removeDevice = async (id) => {
 
 // ── Online Badge ────────────────────────────────────────────
 const lastSeenMap = {};
+const onlineMap   = {};          // id → true/false (çevrimiçi mi?)
 const OFFLINE_THRESHOLD = 15000;
 
 function formatElapsed(ms) {
@@ -667,19 +673,37 @@ function formatElapsed(ms) {
 }
 
 function updateOnlineBadge(id) {
-    const el   = document.getElementById('badge-' + id);
+    const el  = document.getElementById('badge-' + id);
+    const btn = document.getElementById('btn-' + id);
     if (!el) return;
+
     const ls   = lastSeenMap[id] || 0;
     const diff = Date.now() - ls;
+    let isOnline = false;
+
     if (!ls) {
         el.className = 'online-badge unknown';
         el.innerHTML = '<span class="badge-dot"></span>Hiç bağlanmadı';
     } else if (diff < OFFLINE_THRESHOLD) {
         el.className = 'online-badge online';
         el.innerHTML = '<span class="badge-dot"></span>Çevrimiçi';
+        isOnline = true;
     } else {
         el.className = 'online-badge offline';
         el.innerHTML = `<span class="badge-dot"></span>Çevrimdışı · ${formatElapsed(diff)} önce`;
+    }
+
+    onlineMap[id] = isOnline;
+
+    // Butonu aktif/pasif yap (pending komut bekleniyorsa dokunma)
+    if (btn && !btn.dataset.pending) {
+        if (isOnline) {
+            btn.disabled = false;
+            btn.classList.remove('offline-disabled');
+        } else {
+            btn.disabled = true;
+            btn.classList.add('offline-disabled');
+        }
     }
 }
 setInterval(() => Object.keys(lastSeenMap).forEach(updateOnlineBadge), 5000);
@@ -690,6 +714,9 @@ const pendingTimeouts = {};
 window.toggleDevice = async (id) => {
     const btn = document.getElementById('btn-' + id);
     if (!btn || btn.disabled) return;
+    if (!onlineMap[id]) {
+        toast('Cihaz çevrimdışı, komut gönderilemez.', 'error'); return;
+    }
     try {
         const snap = await rtdb.ref('devices/' + id + '/command').once('value');
         const next = !(snap.val() === true);
@@ -792,14 +819,15 @@ function listenUserDevices(uid) {
                     const status = state.status === true;
                     const btn = document.getElementById('btn-' + id);
                     if (!btn) return;
+                    const deviceOnline = onlineMap[id] || false;
                     if (!btn.dataset.pending) {
-                        btn.className = `toggle-btn ${status ? 'on' : 'off'}`;
+                        btn.className = `toggle-btn ${status ? 'on' : 'off'}${deviceOnline ? '' : ' offline-disabled'}`;
                         btn.textContent = status ? 'AÇIK' : 'KAPALI';
-                        btn.disabled = false;
+                        btn.disabled = !deviceOnline;
                     } else if (String(status) === btn.dataset.pending) {
-                        btn.className = `toggle-btn ${status ? 'on' : 'off'}`;
+                        btn.className = `toggle-btn ${status ? 'on' : 'off'}${deviceOnline ? '' : ' offline-disabled'}`;
                         btn.textContent = status ? 'AÇIK' : 'KAPALI';
-                        btn.disabled = false;
+                        btn.disabled = !deviceOnline;
                         delete btn.dataset.pending;
                         if (pendingTimeouts[id]) {
                             clearTimeout(pendingTimeouts[id]);
