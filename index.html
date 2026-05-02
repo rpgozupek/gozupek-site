@@ -291,11 +291,41 @@
 
         /* ── Responsive ───────────────────────────────────────── */
         @media (max-width: 600px) {
-            .navbar { padding: 0 16px; }
-            .dash-main { padding: 16px; }
+            .dash-main   { padding: 16px; }
             .dash-header { padding: 16px; }
-            .hero { padding: 56px 16px 48px; }
-            .features { padding: 48px 16px; }
+            .hero        { padding: 56px 16px 48px; }
+            .features    { padding: 48px 16px; }
+        }
+
+        /* ── Mobil Navbar ─────────────────────────────────────── */
+        @media (max-width: 640px) {
+            .navbar {
+                padding: 0 14px;
+                gap: 8px;
+            }
+            /* Marka yazısını gizle, sadece logo kalsın */
+            .navbar-brand span { display: none; }
+            .navbar-brand img  { height: 30px; }
+
+            /* Kullanıcı adını gizle */
+            .user-name   { display: none; }
+            .user-avatar { width: 30px; height: 30px; }
+
+            /* Sağ grup: daha sıkı */
+            .navbar-right { gap: 6px; }
+
+            /* Butonları kompakt yap */
+            #open-add-modal-btn,
+            #signout-button {
+                padding: 7px 11px;
+                font-size: 13px;
+            }
+        }
+
+        /* ── Çok dar ekran (≤420px): "Cihaz Ekle" → "＋ Ekle" ── */
+        @media (max-width: 420px) {
+            #open-add-modal-btn .btn-label { display: none; }
+            #open-add-modal-btn::after     { content: 'Ekle'; }
         }
     </style>
 </head>
@@ -393,7 +423,7 @@
         <div class="navbar-right">
             <img id="user-photo" class="user-avatar" src="" alt="">
             <span id="user-name-nav" class="user-name"></span>
-            <button class="btn btn-primary btn-sm" id="open-add-modal-btn">＋ Cihaz Ekle</button>
+            <button class="btn btn-primary btn-sm" id="open-add-modal-btn">＋ <span class="btn-label">Cihaz Ekle</span></button>
             <button class="btn btn-ghost btn-sm" id="signout-button">Çıkış</button>
         </div>
     </nav>
